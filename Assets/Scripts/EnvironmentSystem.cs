@@ -97,7 +97,7 @@ public class EnvironmentSystem : MonoBehaviour
 	{
 		const float slowDown = 0.01f;
 
-		while (cubeAnimators[0].speed > 0.01f)
+		while (cubeAnimators[0].speed > 0f)
 		{
 			foreach (Animator anim in cubeAnimators)
 			{
@@ -111,5 +111,32 @@ public class EnvironmentSystem : MonoBehaviour
 		{
 			anim.speed = 0f;
 		}
+	}
+
+	private IEnumerator AnimStart()
+	{
+		const float speedUp = 0.01f;
+
+		while (cubeAnimators[0].speed < 1f)
+		{
+			foreach (Animator anim in cubeAnimators)
+			{
+				anim.speed = Mathf.Clamp(anim.speed + speedUp, 0f, 1f);
+			}
+
+			yield return new WaitForSeconds(0.1f);
+		}
+
+		foreach (Animator anim in cubeAnimators)
+		{
+			anim.speed = 1f;
+		}
+	}
+
+	private IEnumerator AnimRestart()
+	{
+		yield return StartCoroutine(AnimStart());
+
+		StartCoroutine(AnimChange());
 	}
 }

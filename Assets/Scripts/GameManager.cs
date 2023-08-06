@@ -1,9 +1,8 @@
 /*
  * GameManager.cs
  * --------------
- * Made by Lucas Jeong / kimble
+ * Made by Lucas Jeong
  * Contains main game logic and singleton instance.
- * Also contains screen control method.
  */
 
 using System.Collections;

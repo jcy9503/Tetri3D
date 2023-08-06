@@ -277,10 +277,10 @@ public class ParticleRender
 
 public class RenderSystem : MonoBehaviour
 {
-	private static          GameObject       blockObj;
-	private static          GameObject       shadowObj;
-	private static          GameObject       gridObj;
-	private static          GameObject       effectObj;
+	public static           GameObject       blockObj;
+	public static           GameObject       shadowObj;
+	public static           GameObject       gridObj;
+	public static           GameObject       effectObj;
 	private                 List<PrefabMesh> blockMeshList;
 	private                 List<PrefabMesh> shadowMeshList;
 	private                 List<PrefabMesh> gridMeshList;
