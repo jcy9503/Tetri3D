@@ -6,15 +6,7 @@ using TMPro;
 
 public class UISystem : MonoBehaviour
 {
-	private enum SCREEN
-	{
-		MAIN = 0,
-		PLAY,
-		OPTION,
-		LEADER_BOARD,
-		GAME_OVER,
-		COUNT
-	}
+	private Hashtable screenObjects;
 
 	private readonly string[] SCREEN_STR =
 	{
@@ -24,20 +16,10 @@ public class UISystem : MonoBehaviour
 		new("LeaderBoardScreen"),
 		new("GameOverScreen"),
 	};
-	private List<GameObject> screens;
 
 #region Main Screen
 
-	private enum MAIN_BTN
-	{
-		START = 0,
-		OPTION,
-		LEADER_BOARD,
-		QUIT,
-		QUIT_YES,
-		QUIT_NO,
-		COUNT
-	}
+	private Hashtable mainButtons;
 
 	private readonly string[] MAIN_BTN_STR =
 	{
@@ -48,8 +30,8 @@ public class UISystem : MonoBehaviour
 		new("QuitYes"),
 		new("QuitNo"),
 	};
-	private GameObject   mainQuitPanel;
-	private List<Button> mainButtons;
+
+	private GameObject mainQuitPanel;
 
 #endregion
 
@@ -89,6 +71,7 @@ public class UISystem : MonoBehaviour
 		new("RotateZ"),
 		new("RotateZInv"),
 	};
+
 	private GameObject   playPauseScreen;
 	private GameObject   playControlScreen;
 	private GameObject   playBlockMove;
@@ -129,6 +112,7 @@ public class UISystem : MonoBehaviour
 		new("ButtonToggle"),
 		new("ButtonHelp"),
 	};
+
 	private List<GameObject> optionPanels;
 	private List<Button>     optionButtons;
 	private Slider           sliderBGM;
@@ -178,7 +162,20 @@ public class UISystem : MonoBehaviour
 
 	private void InitUI()
 	{
-		screens = new List<GameObject>();
+		Queue<GameObject> screenObjs = new();
+		for (int i = 0; i < SCREEN_STR.Length; ++i)
+		{
+			screenObjs.Enqueue(GameObject.Find(SCREEN_STR[i]));
+		}
+
+		screenObjects = new Hashtable
+		{
+			{ "MainScreen", (screenObjs.Peek(), screenObjs.Dequeue().GetComponent<CanvasGroup>()) },
+			{ "PlayScreen", (screenObjs.Peek(), screenObjs.Dequeue().GetComponent<CanvasGroup>()) },
+			{ "OptionScreen", (screenObjs.Peek(), screenObjs.Dequeue().GetComponent<CanvasGroup>()) },
+			{ "LeaderBoardScreen", (screenObjs.Peek(), screenObjs.Dequeue().GetComponent<CanvasGroup>()) },
+			{ "GameOverScreen", (screenObjs.Peek(), screenObjs.Dequeue().GetComponent<CanvasGroup>()) },
+		};
 
 		InitMainScreen();
 		InitPlayScreen();
@@ -189,17 +186,25 @@ public class UISystem : MonoBehaviour
 
 	private void InitMainScreen()
 	{
-		screens.Add(GameObject.Find("MainScreen"));
-
 		mainQuitPanel = GameObject.Find("QuitPanel");
 
-		mainButtons = new List<Button>();
-
-		for (int i = 0; i < (int)MAIN_BTN.COUNT; ++i)
+		Queue<GameObject> mainObjs = new();
+		for (int i = 0; i < MAIN_BTN_STR.Length; ++i)
 		{
-			mainButtons.Add(GameObject.Find(MAIN_BTN_STR[i]).GetComponent<Button>());
+			mainObjs.Enqueue(GameObject.Find(MAIN_BTN_STR[i]));
 		}
 
+		mainButtons = new()
+		{
+			{ "Start", mainObjs.Dequeue().GetComponent<Button>() },
+			{ "Option", mainObjs.Dequeue().GetComponent<Button>() },
+			{ "LeaderBoard", mainObjs.Dequeue().GetComponent<Button>() },
+			{ "Quit", mainObjs.Dequeue().GetComponent<Button>() },
+			{ "QuitYes", mainObjs.Dequeue().GetComponent<Button>() },
+			{ "QuitNo", mainObjs.Dequeue().GetComponent<Button>() },
+		};
+
+		mainButtons[]
 		mainButtons[(int)MAIN_BTN.START].onClick.AddListener(GameStart);
 		//mainButtons[(int)MAIN_BTN.OPTION].onClick.AddListener(Option);
 		//mainButtons[(int)MAIN_BTN.LEADER_BOARD].onClick.AddListener(LeaderBoard);
@@ -214,6 +219,7 @@ public class UISystem : MonoBehaviour
 	private void InitPlayScreen()
 	{
 		screens.Add(GameObject.Find("PlayScreen"));
+		screenCanvases.Add(screens[(int)SCREEN.PLAY].GetComponent<CanvasGroup>());
 
 		playPauseScreen   = GameObject.Find("PauseScreen");
 		playControlScreen = GameObject.Find("ControlScreen");
@@ -258,6 +264,7 @@ public class UISystem : MonoBehaviour
 	private void InitOptionScreen()
 	{
 		screens.Add(GameObject.Find("OptionScreen"));
+		screenCanvases.Add(screens[(int)SCREEN.OPTION].GetComponent<CanvasGroup>());
 
 		optionPanels = new List<GameObject>
 		{
@@ -273,7 +280,7 @@ public class UISystem : MonoBehaviour
 			optionButtons.Add(GameObject.Find(OPTION_BTN_STR[i]).GetComponent<Button>());
 		}
 
-		optionButtons[(int)OPTION_BTN.HOME].onClick.AddListener();
+		optionButtons[(int)OPTION_BTN.HOME].onClick.AddListener(OptionHome);
 		optionButtons[(int)OPTION_BTN.TAB_SOUND].onClick.AddListener(() => OptionTab(OPTION_TAB.SOUND));
 		optionButtons[(int)OPTION_BTN.TAB_GRAPHIC].onClick.AddListener(() => OptionTab(OPTION_TAB.GRAPHIC));
 		optionButtons[(int)OPTION_BTN.TAB_CONTROL].onClick.AddListener(() => OptionTab(OPTION_TAB.CONTROL));
@@ -297,7 +304,8 @@ public class UISystem : MonoBehaviour
 	private void InitLeaderBoardScreen()
 	{
 		screens.Add(GameObject.Find("LeaderBoard"));
-		
+		screenCanvases.Add(screens[(int)SCREEN.LEADER_BOARD].GetComponent<CanvasGroup>());
+
 		//leaderBoard.onClick.AddListener(() => MoveScreen(curMain, curLeader));
 		cloneG     = GameObject.Find("Boards").GetComponent<Image>();
 		leaderBack = GameObject.Find("Leader_Back").GetComponent<Button>();
@@ -309,6 +317,7 @@ public class UISystem : MonoBehaviour
 	private void InitGameOverScreen()
 	{
 		screens.Add(GameObject.Find("GameOverScreen"));
+		screenCanvases.Add(screens[(int)SCREEN.GAME_OVER].GetComponent<CanvasGroup>());
 
 		retryBtn        = GameObject.Find("Retry_Button").GetComponent<Button>();
 		gameOverHomeBtn = GameObject.Find("Home_Button").GetComponent<Button>();
@@ -322,6 +331,7 @@ public class UISystem : MonoBehaviour
 
 	private void OptionHome()
 	{
+		StartCoroutine(FadeOutIn());
 	}
 
 	private void OptionTab(OPTION_TAB tab)
@@ -331,7 +341,7 @@ public class UISystem : MonoBehaviour
 		optionPanels[(int)tab].gameObject.SetActive(true);
 	}
 
-	private static IEnumerator FadeOutInt(CanvasGroup fadeOut, CanvasGroup fadeIn, float acc)
+	private static IEnumerator FadeOutIn(GameObject fadeOut, GameObject fadeIn, float acc)
 	{
 		const float alphaUnit = 0.02f;
 		float       alphaSet  = 1f;
@@ -401,7 +411,7 @@ public class UISystem : MonoBehaviour
 	private void GameStart()
 	{
 		startBtn.interactable = false;
-		StartCoroutine(FadeOutInt(screenMain, screenPlay, 1f));
+		StartCoroutine(FadeOutIn(screenMain, screenPlay, 1f));
 		startBtn.interactable = true;
 		screenMain.gameObject.SetActive(false);
 
@@ -427,7 +437,7 @@ public class UISystem : MonoBehaviour
 	private void PauseHome()
 	{
 		pauseHomeBtn.interactable = false;
-		StartCoroutine(FadeOutInt(screenPlay, screenMain, 1f));
+		StartCoroutine(FadeOutIn(screenPlay, screenMain, 1f));
 		pauseHomeBtn.interactable = true;
 		playPauseScreen.SetActive(false);
 		playControlScreen.SetActive(true);
