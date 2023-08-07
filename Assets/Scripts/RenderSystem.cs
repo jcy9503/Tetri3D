@@ -483,7 +483,7 @@ public class RenderSystem : MonoBehaviour
 		}
 	}
 
-	private void RefreshCurrentBlock()
+	public void RefreshCurrentBlock()
 	{
 		RenderCurrentBlock();
 		RenderShadowBlock();
@@ -517,5 +517,16 @@ public class RenderSystem : MonoBehaviour
 		}
 
 		gridMeshList.Clear();
+	}
+
+	public void Reset()
+	{
+		RenderCurrentBlock();
+		RenderShadowBlock();
+
+		if (GameManager.testGrid) RenderGrid();
+
+		RenderLine();
+		lineGlowPower = lineMeshList[0].Renderer.material.GetFloat(power);
 	}
 }

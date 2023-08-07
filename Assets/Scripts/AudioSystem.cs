@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class AudioSystem : MonoBehaviour
 {
-	private enum SFX_VALUE
+	public enum SFX_VALUE
 	{
 		BOOL = 0,
 		CLICK,
@@ -46,7 +46,6 @@ public class AudioSystem : MonoBehaviour
 		"BGM/BGM11",
 		"BGM/BGM12",
 	};
-	
 	private readonly string[] SFX_PATH =
 	{
 		"SFX/Bool",
@@ -73,16 +72,17 @@ public class AudioSystem : MonoBehaviour
 		"SFX/Tetris2",
 		"SFX/Resume",
 	};
-	
 	private       AudioSource     audioSourceBGM;
 	private       AudioSource[]   audioSourcesSFX;
 	private       List<AudioClip> bgmSource;
 	private       List<AudioClip> sfxSource;
 	private       int             sfxIdx;
-	private const float           bgmVolumeOrigin = 0.2f;
-	private const float           sfxVolume       = 1f;
+	public const  float           bgmVolumeOrigin = 0.2f;
+	public const  float           bgmVolumeAdj = 3f;
+	public const  float           sfxVolumeOrigin = 1f;
+	private const float           audioInterval   = 2f;
 	private       Coroutine       mainBGM;
-	
+
 	public AudioSystem()
 	{
 		Init();
@@ -90,7 +90,7 @@ public class AudioSystem : MonoBehaviour
 
 	private void Init()
 	{
-		audioSourceBGM             = mainCameraObj.AddComponent<AudioSource>();
+		audioSourceBGM             = CameraSystem.mainCameraObj.AddComponent<AudioSource>();
 		audioSourceBGM.playOnAwake = true;
 		audioSourceBGM.loop        = false;
 		audioSourceBGM.volume      = bgmVolumeOrigin;
@@ -103,7 +103,7 @@ public class AudioSystem : MonoBehaviour
 
 		mainBGM = StartCoroutine(PlayMainBGM());
 
-		audioSourcesSFX = GridObj.GetComponentsInChildren<AudioSource>();
+		audioSourcesSFX = RenderSystem.gridObj.GetComponentsInChildren<AudioSource>();
 		sfxIdx          = -1;
 
 		sfxSource = new List<AudioClip>();
@@ -113,7 +113,7 @@ public class AudioSystem : MonoBehaviour
 			sfxSource.Add(Resources.Load<AudioClip>(path));
 		}
 	}
-	
+
 	private IEnumerator PlayMainBGM()
 	{
 		audioSourceBGM.clip   = bgmSource[0];
@@ -126,20 +126,21 @@ public class AudioSystem : MonoBehaviour
 			if (!audioSourceBGM.isPlaying)
 				audioSourceBGM.Play();
 
-			yield return new WaitForSeconds(2f);
+			yield return new WaitForSeconds(audioInterval);
 		}
 	}
 
-	public IEnumerator PlayGameBGM()
+	private IEnumerator RewindGameBGM()
 	{
 		while (true)
 		{
 			if (GameManager.isGameOver) break;
-			
-			if(!audioSourceBGM.isPlaying)
+			if (GameManager.isPause) continue;
+
+			if (!audioSourceBGM.isPlaying)
 				RandomPlayBGM();
 
-			yield return new WaitForSeconds(2f);
+			yield return new WaitForSeconds(audioInterval);
 		}
 	}
 
@@ -174,7 +175,7 @@ public class AudioSystem : MonoBehaviour
 
 		while (audioSourceBGM.volume > 0f)
 		{
-			audioSourceBGM.volume -= volDown * acc;
+			audioSourceBGM.volume -= acc * volDown;
 
 			yield return new WaitForSeconds(0.03f);
 		}
@@ -199,20 +200,20 @@ public class AudioSystem : MonoBehaviour
 		audioSourceBGM.volume = bgmVolumeOrigin;
 	}
 
-	private void PauseBGM(float acc)
+	public void PauseBGM(float acc)
 	{
 		StartCoroutine(FadeOutBGM(acc));
 	}
 
-	private void ResumeBGM(float acc)
+	public void ResumeBGM(float acc)
 	{
 		StartCoroutine(FadeInBGM(acc));
 	}
 
-	private IEnumerator PlaySfx(SFX_VALUE value)
+	private IEnumerator PlaySFX(SFX_VALUE value)
 	{
 		sfxIdx                         = Mathf.Clamp(sfxIdx + 1, 0, audioSourcesSFX.Length - 1);
-		audioSourcesSFX[sfxIdx].volume = sfxVolume;
+		audioSourcesSFX[sfxIdx].volume = sfxVolumeOrigin;
 		audioSourcesSFX[sfxIdx].PlayOneShot(sfxSource[(int)value]);
 
 		yield return new WaitForSeconds(1f);
@@ -220,10 +221,33 @@ public class AudioSystem : MonoBehaviour
 		--sfxIdx;
 	}
 
-	private void PlayRandomSfx(SFX_VALUE start, SFX_VALUE end)
+	private void PlayRandomSFX(SFX_VALUE start, SFX_VALUE end)
 	{
 		int rand = Random.Range((int)start, (int)end + 1);
 
-		StartCoroutine(PlaySfx((SFX_VALUE)rand));
+		StartCoroutine(PlaySFX((SFX_VALUE)rand));
+	}
+
+	private IEnumerator PlayGameBGM()
+	{
+		StartCoroutine(PlaySFX(SFX_VALUE.CLICK));
+		yield return StartCoroutine(FadeOutBGM(bgmVolumeAdj));
+		StopCoroutine(mainBGM);
+		mainBGM = StartCoroutine(RewindGameBGM());
+	}
+
+	public void GameStart()
+	{
+		StartCoroutine(PlayGameBGM());
+	}
+
+	public void MainMenu()
+	{
+		mainBGM = StartCoroutine(PlayMainBGM());
+	}
+
+	public void BurstSFX(SFX_VALUE value)
+	{
+		StartCoroutine(PlaySFX(value));
 	}
 }

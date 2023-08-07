@@ -5,6 +5,7 @@
  * Contains main game logic and singleton instance.
  */
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -63,7 +64,7 @@ public class GameManager : MonoBehaviour
 	// Game Logic
 	private        int[]           gridSize = { 10, 22, 10 };
 	public static  bool            isGameOver;
-	private static bool            isPause;
+	public static  bool            isPause;
 	private static List<Coroutine> updateLogics;
 
 	// Score
@@ -89,6 +90,25 @@ public class GameManager : MonoBehaviour
 	public static  bool       canSave;
 	public const   float      blockSize    = 1.0f;
 	private const  float      downInterval = 1.0f;
+
+	public enum INPUT_CONTROL
+	{
+		DEFAULT = 0,
+		MOVE_LEFT,
+		MOVE_RIGHT,
+		MOVE_FORWARD,
+		MOVE_BACKWARD,
+		ROTATE_X,
+		ROTATE_X_INV,
+		ROTATE_Y,
+		ROTATE_Y_INV,
+		ROTATE_Z,
+		ROTATE_Z_INV,
+		BLOCK_DOWN,
+		BLOCK_DROP,
+		BLOCK_SAVE,
+		PAUSE,
+	}
 
 	// System Class
 	public static InputSystem  systemInput;
@@ -154,18 +174,98 @@ public class GameManager : MonoBehaviour
 		{
 			Terminate();
 		}
-		else switch (isPause)
-		{
-			case true:
-			{
-				if (Input.GetKey(KeyCode.Escape) && !keyUsing[(int)KEY_VALUE.ESC])
-				{
-					GameResume();
-					keyUsing[(int)KEY_VALUE.ESC] = true;
-					StartCoroutine(KeyRewind((int)KEY_VALUE.ESC));
-				}
 
-				break;
+		INPUT_CONTROL control = systemInput.InputWindows();
+
+		if (!isPause)
+		{
+			switch (control)
+			{
+				case INPUT_CONTROL.DEFAULT:
+					break;
+
+				case INPUT_CONTROL.MOVE_LEFT:
+					MoveBlockLeft();
+
+					break;
+
+				case INPUT_CONTROL.MOVE_RIGHT:
+					MoveBlockRight();
+
+					break;
+
+				case INPUT_CONTROL.MOVE_FORWARD:
+					MoveBlockForward();
+
+					break;
+
+				case INPUT_CONTROL.MOVE_BACKWARD:
+					MoveBlockBackward();
+
+					break;
+
+				case INPUT_CONTROL.ROTATE_X:
+					RotateBlockX();
+
+					break;
+
+				case INPUT_CONTROL.ROTATE_X_INV:
+					RotateBlockXInv();
+
+					break;
+
+				case INPUT_CONTROL.ROTATE_Y:
+					RotateBlockY();
+
+					break;
+
+				case INPUT_CONTROL.ROTATE_Y_INV:
+					RotateBlockYInv();
+
+					break;
+
+				case INPUT_CONTROL.ROTATE_Z:
+					RotateBlockZ();
+
+					break;
+
+				case INPUT_CONTROL.ROTATE_Z_INV:
+					RotateBlockZInv();
+
+					break;
+
+				case INPUT_CONTROL.BLOCK_DOWN:
+					MoveBlockDown();
+
+					break;
+
+				case INPUT_CONTROL.BLOCK_DROP:
+					DropBlock();
+
+					break;
+
+				case INPUT_CONTROL.BLOCK_SAVE:
+					SaveBlock();
+
+					break;
+
+				case INPUT_CONTROL.PAUSE:
+					GamePause();
+
+					break;
+
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
+		}
+		else
+		{
+			switch (control)
+			{
+				case INPUT_CONTROL.PAUSE:
+					GameResume();
+
+					break;
 			}
 		}
 	}
@@ -174,41 +274,43 @@ public class GameManager : MonoBehaviour
 
 #region GameControl
 
-	private IEnumerator GameStart()
+	private static void SaveBlock()
 	{
-		StartCoroutine(PlaySfx(SFX_VALUE.CLICK));
+		canSave = false;
+		systemAudio.BurstSFX(AudioSystem.SFX_VALUE.SHIFT);
+		currentBlock = BlockQueue.SaveAndUpdateBlock(currentBlock);
+		systemRender.RefreshCurrentBlock();
+	}
 
-		StartCoroutine(FadeOutBGM(2f));
-		StopCoroutine(mainBGM);
+	public IEnumerator GameStart()
+	{
+		systemAudio.GameStart();
 
-		yield return StartCoroutine(CameraGameStart());
-
-		RandomPlayBGM();
+		yield return StartCoroutine(systemCamera.GameStart());
 
 		isPause = false;
 
 		updateLogics = new List<Coroutine>
 		{
 			StartCoroutine(BlockDown()),
-			StartCoroutine(AngleCalculate()),
-			StartCoroutine(systemAudio.PlayGameBGM()),
+			StartCoroutine(systemCamera.AngleCalculate()),
 		};
 	}
 
-	private IEnumerator GameHome()
+	public IEnumerator GameHome()
 	{
-		StartCoroutine(PlaySfx(SFX_VALUE.CLICK));
+		systemAudio.BurstSFX(AudioSystem.SFX_VALUE.CLICK);
 
-		yield return StartCoroutine(CameraGameHome());
-
-		mainBGM = StartCoroutine(PlayMainBGM());
+		yield return StartCoroutine(systemCamera.MainMenu());
 
 		isPause = true;
 
-		Replay();
+		systemAudio.MainMenu();
+
+		Reset();
 	}
 
-	private void Replay()
+	private void Reset()
 	{
 		if (testGrid)
 		{
@@ -225,23 +327,16 @@ public class GameManager : MonoBehaviour
 		BlockQueue.SaveBlockReset();
 		canSave = true;
 
-		RenderCurrentBlock();
-		RenderShadowBlock();
-
-		if (testGrid) RenderGrid();
-
-		RenderLine();
-		lineGlowPower = lineMeshList[0].Renderer.material.GetFloat(power);
+		systemRender.Reset();
 	}
 
-	private void GamePause()
+	public void GamePause()
 	{
-		StartCoroutine(PlaySfx(SFX_VALUE.PAUSE));
-
-		UIGamePauseOnClick();
-
 		isPause = true;
-		PauseBGM(3f);
+
+		systemAudio.BurstSFX(AudioSystem.SFX_VALUE.PAUSE);
+
+		systemAudio.PauseBGM(AudioSystem.bgmVolumeAdj);
 
 		foreach (Coroutine coroutine in updateLogics)
 		{
@@ -249,14 +344,13 @@ public class GameManager : MonoBehaviour
 		}
 	}
 
-	private void GameResume()
+	public void GameResume()
 	{
-		StartCoroutine(PlaySfx(SFX_VALUE.RESUME));
-
-		UIGameResumeOnClick();
-
 		isPause = false;
-		ResumeBGM(3f);
+
+		systemAudio.BurstSFX(AudioSystem.SFX_VALUE.RESUME);
+
+		systemAudio.ResumeBGM(AudioSystem.bgmVolumeAdj);
 
 		updateLogics.Add(StartCoroutine(BlockDown()));
 		updateLogics.Add(StartCoroutine(AngleCalculate()));
@@ -367,7 +461,7 @@ public class GameManager : MonoBehaviour
 
 #region BlockRotation
 
-	private void RotateBlockXClockWise()
+	public void RotateBlockX()
 	{
 		switch (viewAngle)
 		{
@@ -462,7 +556,7 @@ public class GameManager : MonoBehaviour
 		}
 	}
 
-	private void RotateBlockXCounterClockWise()
+	public void RotateBlockXInv()
 	{
 		switch (viewAngle)
 		{
@@ -557,7 +651,7 @@ public class GameManager : MonoBehaviour
 		}
 	}
 
-	private void RotateBlockYClockWise()
+	public void RotateBlockY()
 	{
 		currentBlock.RotateYClockWise();
 
@@ -593,7 +687,7 @@ public class GameManager : MonoBehaviour
 		}
 	}
 
-	private void RotateBlockYCounterClockWise()
+	public void RotateBlockYInv()
 	{
 		currentBlock.RotateYCounterClockWise();
 
@@ -629,7 +723,7 @@ public class GameManager : MonoBehaviour
 		}
 	}
 
-	private void RotateBlockZClockWise()
+	public void RotateBlockZ()
 	{
 		switch (viewAngle)
 		{
@@ -724,7 +818,7 @@ public class GameManager : MonoBehaviour
 		}
 	}
 
-	private void RotateBlockZCounterClockWise()
+	public void RotateBlockZInv()
 	{
 		switch (viewAngle)
 		{
@@ -823,7 +917,7 @@ public class GameManager : MonoBehaviour
 
 #region BlockMove
 
-	private void MoveBlockLeft()
+	public void MoveBlockLeft()
 	{
 		currentBlock.Move(Coord.Left[viewAngle]);
 
@@ -841,7 +935,7 @@ public class GameManager : MonoBehaviour
 		}
 	}
 
-	private void MoveBlockRight()
+	public void MoveBlockRight()
 	{
 		currentBlock.Move(Coord.Right[viewAngle]);
 
@@ -859,7 +953,7 @@ public class GameManager : MonoBehaviour
 		}
 	}
 
-	private void MoveBlockForward()
+	public void MoveBlockForward()
 	{
 		currentBlock.Move(Coord.Forward[viewAngle]);
 
@@ -877,7 +971,7 @@ public class GameManager : MonoBehaviour
 		}
 	}
 
-	private void MoveBlockBackward()
+	public void MoveBlockBackward()
 	{
 		currentBlock.Move(Coord.Backward[viewAngle]);
 
@@ -895,7 +989,7 @@ public class GameManager : MonoBehaviour
 		}
 	}
 
-	private void MoveBlockDown()
+	public void MoveBlockDown()
 	{
 		currentBlock.Move(Coord.Down);
 
@@ -913,7 +1007,7 @@ public class GameManager : MonoBehaviour
 		PlaceBlock();
 	}
 
-	private void MoveBlockDownWhole()
+	public void DropBlock()
 	{
 		int num = 0;
 

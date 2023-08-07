@@ -1,21 +1,23 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class CameraSystem : MonoBehaviour
 {
-	private GameObject mainCameraObj;
-	private Camera     mainCamera;
-	private Transform  rotatorTr;
-	private Quaternion mementoRotation;
-	private Quaternion gameCameraRotation        = Quaternion.Euler(15f, 0f, 0f);
-	private float      cameraRotationConstraintX = 55f;
-	private float      cameraSpeed               = 2000f;
-	private float      cameraShakeAmount         = 0.5f;
-	private float      cameraShakeTime           = 0.2f;
-	private bool       isCameraShaking;
-	private int        viewAngle;
-	private bool       checkDir;
-	private bool       dir;
+	public static    GameObject mainCameraObj;
+	private          Camera     mainCamera;
+	private          Transform  rotatorTr;
+	private          Quaternion mementoRotation;
+	private readonly Quaternion initRotation        = Quaternion.Euler(15f, 0f, 0f);
+	private const    float      rotationConstraintX = 55f;
+	private const    float      speed               = 2000f;
+	private const    float      rotationSpeed       = 1f;
+	private const    float      shakeAmount         = 0.5f;
+	private const    float      shakeTime           = 0.2f;
+	public           bool       isShaking;
+	private          int        viewAngle;
+	private          bool       checkDir;
+	private          bool       dir;
 	private bool Dir
 	{
 		get => dir;
@@ -42,10 +44,38 @@ public class CameraSystem : MonoBehaviour
 		Dir                               = false;
 		checkDir                          = false;
 		viewAngle                         = 0;
-		isCameraShaking                   = false;
+		isShaking                         = false;
 	}
-	
-	private IEnumerator AngleCalculate()
+
+	public void RotateHorizontal(bool direction)
+	{
+		Quaternion target = rotatorTr.rotation;
+
+		target *= Quaternion.AngleAxis(direction ? rotationSpeed : -rotationSpeed, Vector3.right);
+
+		float angleX = target.eulerAngles.x;
+		angleX = angleX > 180 ? angleX - 360 : angleX;
+		target.eulerAngles = new Vector3(Mathf.Clamp(angleX, -rotationConstraintX,
+		                                             rotationConstraintX),
+		                                 target.eulerAngles.y, 0f);
+		rotatorTr.rotation = Quaternion.RotateTowards(rotatorTr.rotation, target,
+		                                              speed * Time.deltaTime);
+	}
+
+	public void RotateVertical(bool direction)
+	{
+		Quaternion rotation = rotatorTr.rotation;
+		Quaternion target   = rotation;
+
+		target             *= Quaternion.AngleAxis(direction ? rotationSpeed : -rotationSpeed, Vector3.up);
+		target.eulerAngles =  new Vector3(target.eulerAngles.x, target.eulerAngles.y, 0f);
+
+		rotation = Quaternion.RotateTowards(rotation, target,
+		                                    speed * Time.deltaTime);
+		rotatorTr.rotation = rotation;
+	}
+
+	public IEnumerator AngleCalculate()
 	{
 		while (true)
 		{
@@ -62,30 +92,24 @@ public class CameraSystem : MonoBehaviour
 			yield return new WaitForSeconds(defaultKeyInterval);
 		}
 	}
-	
-	private IEnumerator CameraShake()
+
+	private IEnumerator Shake()
 	{
-		isCameraShaking = true;
-
-		yield return StartCoroutine(RotatorShake());
-
-		RotatorPositionClear();
-	}
-
-	private IEnumerator RotatorShake()
-	{
+		isShaking = true;
 		float timer = 0;
 
-		while (timer <= cameraShakeTime)
+		while (timer <= shakeTime)
 		{
-			rotatorTr.position =  (Vector3)Random.insideUnitCircle * cameraShakeAmount;
+			rotatorTr.position =  (Vector3)Random.insideUnitCircle * shakeAmount;
 			timer              += Time.deltaTime;
 
 			yield return null;
 		}
+
+		RotatorPositionClear();
 	}
-	
-	private IEnumerator CameraGameStart()
+
+	public IEnumerator GameStart()
 	{
 		float pastTime = 0f;
 
@@ -100,10 +124,10 @@ public class CameraSystem : MonoBehaviour
 			pastTime += 0.01f;
 		}
 
-		mainCamera.transform.rotation = gameCameraRotation;
+		mainCamera.transform.rotation = initRotation;
 	}
 
-	private IEnumerator CameraGameHome()
+	public IEnumerator MainMenu()
 	{
 		float pastTime = 0f;
 
@@ -120,11 +144,11 @@ public class CameraSystem : MonoBehaviour
 
 		mainCamera.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
 	}
-	
+
 	private void RotatorPositionClear()
 	{
 		rotatorTr.position = Vector3.zero;
 
-		isCameraShaking = false;
+		isShaking = false;
 	}
 }

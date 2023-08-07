@@ -1,93 +1,175 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
 public class UISystem : MonoBehaviour
 {
-#region MainScreen
+	private enum SCREEN
+	{
+		MAIN = 0,
+		PLAY,
+		OPTION,
+		LEADER_BOARD,
+		GAME_OVER,
+		COUNT
+	}
 
-	private CanvasGroup mainCanvas;
-	private GameObject  quitPanel;
-	private Button      startBtn;
-	private Button      optionBtn;
-	private Button      leaderBoardBtn;
-	private Button      quitBtn;
-	private Button      quitYes;
-	private Button      quitNo;
+	private readonly string[] SCREEN_STR =
+	{
+		new("MainScreen"),
+		new("PlayScreen"),
+		new("OptionScreen"),
+		new("LeaderBoardScreen"),
+		new("GameOverScreen"),
+	};
+	private List<GameObject> screens;
 
-#endregion
+#region Main Screen
 
-#region PlayScreen
+	private enum MAIN_BTN
+	{
+		START = 0,
+		OPTION,
+		LEADER_BOARD,
+		QUIT,
+		QUIT_YES,
+		QUIT_NO,
+		COUNT
+	}
 
-	private CanvasGroup playCanvas;
-	private GameObject  pauseScreen;
-	private GameObject  controlScreen;
-	private GameObject  rotateBtns;
-	private GameObject  moveBtns;
-	private Button      pauseBtn;
-	private Button      pauseHomeBtn;
-	private Button      pauseResumeBtn;
-	private Button      moveUpBtn;
-	private Button      moveDownBtn;
-	private Button      moveLeftBtn;
-	private Button      moveRightBtn;
-	private Button      rotateXBtn;
-	private Button      rotateYBtn;
-	private Button      rotateZBtn;
-	private Button      rotateXInverseBtn;
-	private Button      rotateYInverseBtn;
-	private Button      rotateZInverseBtn;
-	private TMP_Text    inGameScoreText;
-
-#endregion
-
-#region OptionScreen
-
-	private CanvasGroup optionCanvas;
-	private GameObject  soundPanel;
-	private GameObject  graphicPanel;
-	private GameObject  controlPanel;
-
-#endregion
-
-#region LeaderBoardScreen
-
-	private CanvasGroup leaderBoardCanvas;
+	private readonly string[] MAIN_BTN_STR =
+	{
+		new("Start"),
+		new("Option"),
+		new("LeaderBoard"),
+		new("Quit"),
+		new("QuitYes"),
+		new("QuitNo"),
+	};
+	private GameObject   mainQuitPanel;
+	private List<Button> mainButtons;
 
 #endregion
 
-#region GameOverScreen
+#region Play Screen
 
-	private CanvasGroup gameOverCanvas;
-	private Button      retryBtn;
-	private Button      gameOverHomeBtn;
-	private TMP_Text    gameOverScoreText;
+	private enum PLAY_BTN
+	{
+		PAUSE = 0,
+		PAUSE_HOME,
+		PAUSE_RESUME,
+		BLOCK_LEFT,
+		BLOCK_RIGHT,
+		BLOCK_FORWARD,
+		BLOCK_BACKWARD,
+		ROTATE_X,
+		ROTATE_X_INV,
+		ROTATE_Y,
+		ROTATE_Y_INV,
+		ROTATE_Z,
+		ROTATE_Z_INV,
+		COUNT
+	}
+
+	private readonly string[] PLAY_BTN_STR =
+	{
+		new("Pause"),
+		new("PauseHome"),
+		new("PauseResume"),
+		new("BlockLeft"),
+		new("BlockRight"),
+		new("BlockForward"),
+		new("BlockBackward"),
+		new("RotateX"),
+		new("RotateXInv"),
+		new("RotateY"),
+		new("RotateYInv"),
+		new("RotateZ"),
+		new("RotateZInv"),
+	};
+	private GameObject   playPauseScreen;
+	private GameObject   playControlScreen;
+	private GameObject   playBlockMove;
+	private GameObject   playBlockRotate;
+	private List<Button> playButtons;
+	private TMP_Text     playScoreTxt;
 
 #endregion
 
-	private          TMP_Text        finalScore;
-	private          TextMeshProUGUI optionTitle;
-	private readonly string[]        optionTitles = { "Sound", "Graphics", "Controls" };
-	private          Button          soundTab;
-	private          Slider          bgmSlider;
-	private          Slider          sfxSlider;
-	private          Button          graphicTab;
-	private          TextMeshProUGUI blkOption;
-	private const    string          blkOptionColor = "Color";
-	private          Button          infoBtn;
-	private          Button          controlTab;
-	private          Button          btnMode;
-	private          Button          destroyOnOff;
-	private          Image           destroyCheck;
-	private          Button          rotationOnOff;
-	private          Image           rotationCheck;
-	private          Button          optionBack;
-	private          TextMeshProUGUI firstG;
-	private          TextMeshProUGUI secondG;
-	private          TextMeshProUGUI thirdG;
-	private          Image           cloneG;
-	private          Button          leaderBack;
+#region Option Screen
+
+	private enum OPTION_TAB
+	{
+		SOUND,
+		GRAPHIC,
+		CONTROL,
+		COUNT
+	}
+
+	private enum OPTION_BTN
+	{
+		HOME = 0,
+		TAB_SOUND,
+		TAB_GRAPHIC,
+		TAB_CONTROL,
+		TOGGLE_COLOR_OPT,
+		TOGGLE_BUTTON_OPT,
+		BUTTON_OPT_HELP,
+		COUNT
+	}
+
+	private readonly string[] OPTION_BTN_STR =
+	{
+		new("SoundTab"),
+		new("GraphicTab"),
+		new("ControlTab"),
+		new("ColorToggle"),
+		new("ButtonToggle"),
+		new("ButtonHelp"),
+	};
+	private List<GameObject> optionPanels;
+	private List<Button>     optionButtons;
+	private Slider           sliderBGM;
+	private Slider           sliderSFX;
+
+#endregion
+
+#region Leader Board Screen
+
+#endregion
+
+#region Game Over Screen
+
+	private Button   retryBtn;
+	private Button   gameOverHomeBtn;
+	private TMP_Text gameOverScoreText;
+
+#endregion
+
+#region Common Variables
+
+	private       TMP_Text        finalScore;
+	private       Button          soundTab;
+	private       Button          graphicTab;
+	private       TextMeshProUGUI blkOption;
+	private const string          blkOptionColor = "Color";
+	private       Button          infoBtn;
+	private       Button          controlTab;
+	private       Button          btnMode;
+	private       Button          destroyOnOff;
+	private       Image           destroyCheck;
+	private       Button          rotationOnOff;
+	private       Image           rotationCheck;
+	private       Button          optionBack;
+	private       TextMeshProUGUI firstG;
+	private       TextMeshProUGUI secondG;
+	private       TextMeshProUGUI thirdG;
+	private       Image           cloneG;
+	private       Button          leaderBack;
+
+#endregion
 
 	public UISystem()
 	{
@@ -96,177 +178,160 @@ public class UISystem : MonoBehaviour
 
 	private void InitUI()
 	{
-		UIInitMain();
-		UIInitGameOver();
-		UIInitPlay();
-		UIInitOption();
-		UIInitLeaderBoard();
+		screens = new List<GameObject>();
+
+		InitMainScreen();
+		InitPlayScreen();
+		InitOptionScreen();
+		InitLeaderBoardScreen();
+		InitGameOverScreen();
 	}
 
-	private void UIInitPlay()
+	private void InitMainScreen()
 	{
-		pauseScreen   = GameObject.Find("PauseScreen");
-		controlScreen = GameObject.Find("ControlScreen");
+		screens.Add(GameObject.Find("MainScreen"));
 
-		rotateBtns = GameObject.Find("Rotate_Buttons");
-		moveBtns   = GameObject.Find("Move_Buttons");
+		mainQuitPanel = GameObject.Find("QuitPanel");
+
+		mainButtons = new List<Button>();
+
+		for (int i = 0; i < (int)MAIN_BTN.COUNT; ++i)
+		{
+			mainButtons.Add(GameObject.Find(MAIN_BTN_STR[i]).GetComponent<Button>());
+		}
+
+		mainButtons[(int)MAIN_BTN.START].onClick.AddListener(GameStart);
+		//mainButtons[(int)MAIN_BTN.OPTION].onClick.AddListener(Option);
+		//mainButtons[(int)MAIN_BTN.LEADER_BOARD].onClick.AddListener(LeaderBoard);
+		mainButtons[(int)MAIN_BTN.QUIT].onClick.AddListener(() => mainQuitPanel.gameObject.SetActive(true));
+		mainButtons[(int)MAIN_BTN.QUIT_YES].onClick.AddListener(Application.Quit);
+		mainButtons[(int)MAIN_BTN.QUIT_NO].onClick.AddListener(() => mainQuitPanel.gameObject.SetActive(false));
+
+		mainQuitPanel.SetActive(false);
+		screens[(int)SCREEN.MAIN].SetActive(true);
+	}
+
+	private void InitPlayScreen()
+	{
+		screens.Add(GameObject.Find("PlayScreen"));
+
+		playPauseScreen   = GameObject.Find("PauseScreen");
+		playControlScreen = GameObject.Find("ControlScreen");
+		playBlockRotate   = GameObject.Find("BlockRotate");
+		playBlockMove     = GameObject.Find("BlockMove");
+
+		playButtons = new List<Button>();
+
+		for (int i = 0; i < (int)PLAY_BTN.COUNT; ++i)
+		{
+			playButtons.Add(GameObject.Find(PLAY_BTN_STR[i]).GetComponent<Button>());
+		}
+
+		playButtons[(int)PLAY_BTN.PAUSE].onClick.AddListener(GamePause);
+		playButtons[(int)PLAY_BTN.PAUSE_HOME].onClick.AddListener(PauseHome);
+		playButtons[(int)PLAY_BTN.PAUSE_RESUME].onClick.AddListener(GameResume);
+		playButtons[(int)PLAY_BTN.BLOCK_LEFT].onClick.AddListener(GameManager.Instance.MoveBlockLeft);
+		playButtons[(int)PLAY_BTN.BLOCK_RIGHT].onClick.AddListener(GameManager.Instance.MoveBlockRight);
+		playButtons[(int)PLAY_BTN.BLOCK_FORWARD].onClick.AddListener(GameManager.Instance.MoveBlockForward);
+		playButtons[(int)PLAY_BTN.BLOCK_BACKWARD].onClick.AddListener(GameManager.Instance.MoveBlockBackward);
+		playButtons[(int)PLAY_BTN.ROTATE_X].onClick.AddListener(GameManager.Instance.RotateBlockX);
+		playButtons[(int)PLAY_BTN.ROTATE_X_INV].onClick.AddListener(GameManager.Instance.RotateBlockXInv);
+		playButtons[(int)PLAY_BTN.ROTATE_Y].onClick.AddListener(GameManager.Instance.RotateBlockY);
+		playButtons[(int)PLAY_BTN.ROTATE_Y_INV].onClick.AddListener(GameManager.Instance.RotateBlockYInv);
+		playButtons[(int)PLAY_BTN.ROTATE_Z].onClick.AddListener(GameManager.Instance.RotateBlockZ);
+		playButtons[(int)PLAY_BTN.ROTATE_Z_INV].onClick.AddListener(GameManager.Instance.RotateBlockZInv);
+
+		playScoreTxt      = GameObject.Find("GameScoreText").GetComponent<TMP_Text>();
+		playScoreTxt.text = "0";
 
 #if UNITY_EDITOR || UNITY_STANDALONE_WIN
-		rotateBtns.SetActive(false);
-		moveBtns.SetActive(false);
+
+		playBlockRotate.SetActive(false);
+		playBlockMove.SetActive(false);
+
 #endif
 
-		pauseBtn       = GameObject.Find("Pause").GetComponent<Button>();
-		pauseHomeBtn   = GameObject.Find("Pause_Home").GetComponent<Button>();
-		pauseResumeBtn = GameObject.Find("Pause_Resume").GetComponent<Button>();
-
-		inGameScoreText      = GameObject.Find("Text_Score").GetComponent<TMP_Text>();
-		inGameScoreText.text = "0";
-
-		pauseBtn.onClick.AddListener(UIGamePauseOnClick);
-		pauseHomeBtn.onClick.AddListener(UIPauseHomeOnClick);
-		pauseResumeBtn.onClick.AddListener(UIGameResumeOnClick);
-
-		playCanvas.gameObject.SetActive(false);
-		pauseScreen.gameObject.SetActive(false);
+		playPauseScreen.SetActive(false);
+		screens[(int)SCREEN.PLAY].SetActive(false);
 	}
 
-	private void UIInitGameOver()
+	private void InitOptionScreen()
 	{
-		gameOverCanvas = GameObject.Find("GameOverScreen").GetComponent<CanvasGroup>();
+		screens.Add(GameObject.Find("OptionScreen"));
+
+		optionPanels = new List<GameObject>
+		{
+			GameObject.Find("SoundButtons"),
+			GameObject.Find("GraphicButtons"),
+			GameObject.Find("ControlButtons")
+		};
+
+		optionButtons = new List<Button>();
+
+		for (int i = 0; i < (int)OPTION_BTN.COUNT; ++i)
+		{
+			optionButtons.Add(GameObject.Find(OPTION_BTN_STR[i]).GetComponent<Button>());
+		}
+
+		optionButtons[(int)OPTION_BTN.HOME].onClick.AddListener();
+		optionButtons[(int)OPTION_BTN.TAB_SOUND].onClick.AddListener(() => OptionTab(OPTION_TAB.SOUND));
+		optionButtons[(int)OPTION_BTN.TAB_GRAPHIC].onClick.AddListener(() => OptionTab(OPTION_TAB.GRAPHIC));
+		optionButtons[(int)OPTION_BTN.TAB_CONTROL].onClick.AddListener(() => OptionTab(OPTION_TAB.CONTROL));
+		//optionButtons[(int)OPTION_BTN.TOGGLE_COLOR_OPT].onClick.AddListener();
+		//optionButtons[(int)OPTION_BTN.TOGGLE_BUTTON_OPT].onClick.AddListener();
+		//optionButtons[(int)OPTION_BTN.BUTTON_OPT_HELP].onClick.AddListener();
+
+		sliderBGM = GameObject.Find("BGMSlider").GetComponent<Slider>();
+		sliderSFX = GameObject.Find("SFXSlider").GetComponent<Slider>();
+
+		sliderBGM.onValueChanged.AddListener();
+		sliderSFX.onValueChanged.AddListener();
+
+		optionPanels[(int)OPTION_BTN.TAB_SOUND].gameObject.SetActive(true);
+		for (int i = (int)OPTION_TAB.GRAPHIC; i < (int)OPTION_TAB.COUNT; ++i)
+			optionPanels[i].gameObject.SetActive(false);
+
+		screens[(int)SCREEN.OPTION].SetActive(false);
+	}
+
+	private void InitLeaderBoardScreen()
+	{
+		screens.Add(GameObject.Find("LeaderBoard"));
+		
+		//leaderBoard.onClick.AddListener(() => MoveScreen(curMain, curLeader));
+		cloneG     = GameObject.Find("Boards").GetComponent<Image>();
+		leaderBack = GameObject.Find("Leader_Back").GetComponent<Button>();
+		//leaderBack.onClick.AddListener(() => MoveScreen(curLeader, curMain));
+
+		screens[(int)SCREEN.LEADER_BOARD].SetActive(false);
+	}
+
+	private void InitGameOverScreen()
+	{
+		screens.Add(GameObject.Find("GameOverScreen"));
 
 		retryBtn        = GameObject.Find("Retry_Button").GetComponent<Button>();
 		gameOverHomeBtn = GameObject.Find("Home_Button").GetComponent<Button>();
 
 		gameOverScoreText = GameObject.Find("GameOver_Score").GetComponent<TMP_Text>();
 
-		retryBtn.onClick.AddListener(UIInitPlay);
+		retryBtn.onClick.AddListener(InitPlayScreen);
 
-		gameOverCanvas.gameObject.SetActive(false);
+		screens[(int)SCREEN.GAME_OVER].SetActive(false);
 	}
 
-	private void UIInitMain()
+	private void OptionHome()
 	{
-		playCanvas        = GameObject.Find("PlayScreen").GetComponent<CanvasGroup>();
-		mainCanvas        = GameObject.Find("MainScreen").GetComponent<CanvasGroup>();
-		optionCanvas      = GameObject.Find("OptionScreen").GetComponent<CanvasGroup>();
-		leaderBoardCanvas = GameObject.Find("LeaderBoard").GetComponent<CanvasGroup>();
-
-		startBtn       = GameObject.Find("Game_Start").GetComponent<Button>();
-		optionBtn      = GameObject.Find("Option").GetComponent<Button>();
-		leaderBoardBtn = GameObject.Find("Leader_Board").GetComponent<Button>();
-		quitBtn        = GameObject.Find("Quit").GetComponent<Button>();
-		quitYes        = GameObject.Find("Quit_Yes").GetComponent<Button>();
-		quitNo         = GameObject.Find("Quit_No").GetComponent<Button>();
-		quitPanel      = GameObject.Find("Quit_Panel");
-
-		startBtn.onClick.AddListener(UIGameStartOnClick);
-		quitBtn.onClick.AddListener(delegate { quitPanel.gameObject.SetActive(true); });
-
-		quitYes.onClick.AddListener(delegate { Application.Quit(); });
-		quitNo.onClick.AddListener(delegate { quitPanel.gameObject.SetActive(false); });
-
-		quitPanel.gameObject.SetActive(false);
 	}
 
-	private void UIInitOption()
+	private void OptionTab(OPTION_TAB tab)
 	{
-		soundPanel   = GameObject.Find("SoundBtns");
-		graphicPanel = GameObject.Find("GraphicBtns");
-		controlPanel = GameObject.Find("ControlBtns");
-
-		optionTitle = GameObject.Find("Option_Title").GetComponent<TextMeshProUGUI>();
-		soundTab    = GameObject.Find("Sound_Tab").GetComponent<Button>();
-		soundTab.onClick.AddListener(OpenSoundTab);
-
-		bgmSlider       = GameObject.Find("BGM_Slider").GetComponent<Slider>();
-		bgmSlider.value = audioSourceBGM.volume;
-
-		sfxSlider       = GameObject.Find("SFX_Slider").GetComponent<Slider>();
-		sfxSlider.value = sfxVolume;
-
-		graphicTab = GameObject.Find("Graphic_Tab").GetComponent<Button>();
-		graphicTab.onClick.AddListener(OpenGraphicTab);
-		destroyCheck  = GameObject.Find("Destroy_Check").GetComponent<Image>();
-		rotationCheck = GameObject.Find("Rotation_Check").GetComponent<Image>();
-		destroyOnOff  = GameObject.Find("Destroy_Effect_Box").GetComponent<Button>();
-		destroyOnOff.onClick.AddListener(() => ImageOnOff(destroyCheck));
-		rotationOnOff = GameObject.Find("Rotation_Effect_Box").GetComponent<Button>();
-		rotationOnOff.onClick.AddListener(() => ImageOnOff(rotationCheck));
-
-		blkOption      = GameObject.Find("ColorChange_Text").GetComponent<TextMeshProUGUI>();
-		blkOption.text = blkOptionColor;
-		GameObject.Find("ColorChange_Handle").GetComponent<Button>();
-
-		GameObject.Find("ColorChange_Image").GetComponent<Image>();
-
-		controlTab = GameObject.Find("Control_Tab").GetComponent<Button>();
-		controlTab.onClick.AddListener(OpenControlTab);
-
-		optionBack = GameObject.Find("Option_Back").GetComponent<Button>();
-		//optionBack.onClick.AddListener(() => MoveScreen(curOption, curMain));
-
-		soundPanel.gameObject.SetActive(true);
-		graphicPanel.gameObject.SetActive(false);
-		controlPanel.gameObject.SetActive(false);
-		optionCanvas.gameObject.SetActive(false);
+		for (int i = 0; i < (int)OPTION_TAB.COUNT; ++i)
+			optionPanels[i].gameObject.SetActive(false);
+		optionPanels[(int)tab].gameObject.SetActive(true);
 	}
 
-	private void UIInitLeaderBoard()
-	{
-		//leaderBoard.onClick.AddListener(() => MoveScreen(curMain, curLeader));
-		cloneG     = GameObject.Find("Boards").GetComponent<Image>();
-		leaderBack = GameObject.Find("Leader_Back").GetComponent<Button>();
-		//leaderBack.onClick.AddListener(() => MoveScreen(curLeader, curMain));
-
-		leaderBoardCanvas.gameObject.SetActive(false);
-
-		CloneGrades(cloneG);
-	}
-
-	private IEnumerator BtnClick(Image image)
-	{
-		float   interval    = 0.1f;
-		Color   originColor = image.color;
-		Color   pressed     = new(255, 255, 255, 0.2f);
-		Vector3 trans       = new(0.01f, 0.01f);
-		Vector3 originSize  = image.transform.localScale;
-
-		while (true)
-		{
-			Vector3 localScale = image.transform.localScale;
-			Vector3.Slerp(localScale, trans, interval);
-			image.color = Color.Lerp(image.color, pressed, interval);
-
-			yield return new WaitForSeconds(interval);
-
-			localScale                 = originSize;
-			image.transform.localScale = localScale;
-			image.color                = originColor;
-
-			yield break;
-		}
-	}
-
-	public IEnumerator LerpImage(Image image)
-	{
-		Color originAlpha = new Color(255f, 255f, 255f, 1f);
-		Color lowAlpha    = new Color(255f, 255f, 255f, 0f);
-		float interval    = 0.1f;
-
-		while (true)
-		{
-			image.color = Color.Lerp(image.color, lowAlpha, (interval + 0.4f) * Time.deltaTime);
-
-			yield return new WaitForSeconds(interval);
-
-			image.color = Color.Lerp(image.color, originAlpha, (interval + 0.4f) * Time.deltaTime);
-
-			yield break;
-		}
-	}
-
-	private static IEnumerator UIFadeInOut(CanvasGroup fadeOut, CanvasGroup fadeIn, float acc)
+	private static IEnumerator FadeOutInt(CanvasGroup fadeOut, CanvasGroup fadeIn, float acc)
 	{
 		const float alphaUnit = 0.02f;
 		float       alphaSet  = 1f;
@@ -292,11 +357,6 @@ public class UISystem : MonoBehaviour
 
 			yield return new WaitForSeconds(0.01f);
 		}
-	}
-
-	private void VolumeControl(float value, Slider slider)
-	{
-		slider.value = value;
 	}
 
 	private void OpenSoundTab()
@@ -338,42 +398,42 @@ public class UISystem : MonoBehaviour
 		blink.enabled = !blink.enabled;
 	}
 
-	private void UIGameStartOnClick()
+	private void GameStart()
 	{
 		startBtn.interactable = false;
-		StartCoroutine(UIFadeInOut(mainCanvas, playCanvas, 1f));
+		StartCoroutine(FadeOutInt(screenMain, screenPlay, 1f));
 		startBtn.interactable = true;
-		mainCanvas.gameObject.SetActive(false);
+		screenMain.gameObject.SetActive(false);
 
-		StartCoroutine(GameStart());
+		StartCoroutine(GameManager.Instance.GameStart());
 	}
 
-	private void UIGamePauseOnClick()
+	private void GamePause()
 	{
-		controlScreen.SetActive(false);
-		pauseScreen.SetActive(true);
+		playControlScreen.SetActive(false);
+		playPauseScreen.SetActive(true);
 
-		GamePause();
+		GameManager.Instance.GamePause();
 	}
 
-	private void UIGameResumeOnClick()
+	private void GameResume()
 	{
-		pauseScreen.SetActive(false);
-		controlScreen.SetActive(true);
+		playPauseScreen.SetActive(false);
+		playControlScreen.SetActive(true);
 
-		GameResume();
+		GameManager.Instance.GameResume();
 	}
 
-	private void UIPauseHomeOnClick()
+	private void PauseHome()
 	{
 		pauseHomeBtn.interactable = false;
-		StartCoroutine(UIFadeInOut(playCanvas, mainCanvas, 1f));
+		StartCoroutine(FadeOutInt(screenPlay, screenMain, 1f));
 		pauseHomeBtn.interactable = true;
-		pauseScreen.SetActive(false);
-		controlScreen.SetActive(true);
-		playCanvas.gameObject.SetActive(false);
+		playPauseScreen.SetActive(false);
+		playControlScreen.SetActive(true);
+		screenPlay.gameObject.SetActive(false);
 
-		StartCoroutine(GameHome());
+		StartCoroutine(GameManager.Instance.GameHome());
 	}
 
 	private void UIReplayOnClick()
