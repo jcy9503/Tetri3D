@@ -1,12 +1,12 @@
 using System.Collections;
 using UnityEngine;
 
-public class EffectSystem : MonoBehaviour
+public sealed class EffectSystem : MonoSingleton<EffectSystem>
 {
-	private       ParticleRender rotationParticle;
-	private const string         vfxRotation = "Prefabs/VFX_Rotation";
-	private const string         vfxDrop     = "Prefabs/VFX_Drop";
-	
+	private       ParticleRender              rotationParticle;
+	private const string                      vfxRotation = "Prefabs/VFX_Rotation";
+	private const string                      vfxDrop     = "Prefabs/VFX_Drop";
+
 	private static readonly int alpha         = Shader.PropertyToID("_Alpha");
 	private static readonly int clear         = Shader.PropertyToID("_Clear");
 	private static readonly int emission      = Shader.PropertyToID("_Emission");
@@ -18,14 +18,14 @@ public class EffectSystem : MonoBehaviour
 
 	public EffectSystem()
 	{
-		
+		Init();
 	}
 
-	private void Init()
+	protected override void Init()
 	{
 		rotationParticle = null;
 	}
-	
+
 	private void DropEffect()
 	{
 		int yMax = currentBlock.Tile.Select(coord => coord.Y).Prepend(-1).Max();

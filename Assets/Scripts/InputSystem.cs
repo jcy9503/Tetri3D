@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class InputSystem : MonoBehaviour
+public sealed class InputSystem : MonoSingleton<InputSystem>
 {
 	private enum KEY_VALUE
 	{
@@ -33,7 +33,7 @@ public class InputSystem : MonoBehaviour
 		Init();
 	}
 
-	private void Init()
+	protected override void Init()
 	{
 		clickPos = Vector2.zero;
 

@@ -275,7 +275,7 @@ public class ParticleRender
 	}
 }
 
-public class RenderSystem : MonoBehaviour
+public class RenderSystem : MonoSingleton<RenderSystem>
 {
 	public static           GameObject       blockObj;
 	public static           GameObject       shadowObj;

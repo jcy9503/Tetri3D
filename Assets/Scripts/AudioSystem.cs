@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class AudioSystem : MonoBehaviour
+public sealed class AudioSystem : MonoSingleton<AudioSystem>
 {
 	public enum SFX_VALUE
 	{
@@ -46,6 +46,7 @@ public class AudioSystem : MonoBehaviour
 		"BGM/BGM11",
 		"BGM/BGM12",
 	};
+
 	private readonly string[] SFX_PATH =
 	{
 		"SFX/Bool",
@@ -72,28 +73,51 @@ public class AudioSystem : MonoBehaviour
 		"SFX/Tetris2",
 		"SFX/Resume",
 	};
-	private       AudioSource     audioSourceBGM;
-	private       AudioSource[]   audioSourcesSFX;
-	private       List<AudioClip> bgmSource;
-	private       List<AudioClip> sfxSource;
-	private       int             sfxIdx;
-	public const  float           bgmVolumeOrigin = 0.2f;
-	public const  float           bgmVolumeAdj = 3f;
-	public const  float           sfxVolumeOrigin = 1f;
-	private const float           audioInterval   = 2f;
-	private       Coroutine       mainBGM;
+
+	private AudioSource     audioSourceBGM;
+	private AudioSource[]   audioSourcesSFX;
+	private List<AudioClip> bgmSource;
+	private List<AudioClip> sfxSource;
+	private int             sfxIdx;
+	private float           bgmVolume = 0.2f;
+	public float BGMVolume
+	{
+		get => bgmVolume;
+		set
+		{
+			bgmVolume             = Mathf.Clamp(value, 0f, 0.4f);
+			audioSourceBGM.volume = bgmVolume;
+		}
+	}
+
+	private const float     bgmVolumeAdj    = 3f;
+	private       float     sfxVolume = 1f;
+	public float SFXVolume
+	{
+		get => sfxVolume;
+		set
+		{
+			sfxVolume = Mathf.Clamp(value, 0f, 1f);
+			for (int i = 0; i < audioSourcesSFX.Length; i++)
+			{
+				audioSourcesSFX[i].volume = sfxVolume;
+			}
+		}
+	}
+	private const float     audioInterval   = 2f;
+	private       Coroutine mainBGM;
 
 	public AudioSystem()
 	{
 		Init();
 	}
 
-	private void Init()
+	protected override void Init()
 	{
 		audioSourceBGM             = CameraSystem.mainCameraObj.AddComponent<AudioSource>();
 		audioSourceBGM.playOnAwake = true;
 		audioSourceBGM.loop        = false;
-		audioSourceBGM.volume      = bgmVolumeOrigin;
+		audioSourceBGM.volume      = bgmVolume;
 		bgmSource                  = new List<AudioClip>();
 
 		foreach (string path in BGM_PATH)
@@ -117,7 +141,7 @@ public class AudioSystem : MonoBehaviour
 	private IEnumerator PlayMainBGM()
 	{
 		audioSourceBGM.clip   = bgmSource[0];
-		audioSourceBGM.volume = bgmVolumeOrigin;
+		audioSourceBGM.volume = bgmVolume;
 		audioSourceBGM.pitch  = 1f;
 		audioSourceBGM.Play();
 
@@ -135,6 +159,7 @@ public class AudioSystem : MonoBehaviour
 		while (true)
 		{
 			if (GameManager.isGameOver) break;
+
 			if (GameManager.isPause) continue;
 
 			if (!audioSourceBGM.isPlaying)
@@ -146,7 +171,7 @@ public class AudioSystem : MonoBehaviour
 
 	private void RandomPlayBGM()
 	{
-		audioSourceBGM.volume = bgmVolumeOrigin;
+		audioSourceBGM.volume = bgmVolume;
 		audioSourceBGM.clip   = bgmSource[Random.Range(1, bgmSource.Count)];
 		audioSourceBGM.Play();
 	}
@@ -165,7 +190,7 @@ public class AudioSystem : MonoBehaviour
 		}
 
 		audioSourceBGM.Stop();
-		audioSourceBGM.volume = bgmVolumeOrigin;
+		audioSourceBGM.volume = bgmVolume;
 		audioSourceBGM.pitch  = 1f;
 	}
 
@@ -190,14 +215,14 @@ public class AudioSystem : MonoBehaviour
 
 		audioSourceBGM.Play();
 
-		while (audioSourceBGM.volume < bgmVolumeOrigin)
+		while (audioSourceBGM.volume < bgmVolume)
 		{
 			audioSourceBGM.volume += volUp * acc;
 
 			yield return new WaitForSeconds(0.03f);
 		}
 
-		audioSourceBGM.volume = bgmVolumeOrigin;
+		audioSourceBGM.volume = bgmVolume;
 	}
 
 	public void PauseBGM(float acc)
@@ -213,7 +238,7 @@ public class AudioSystem : MonoBehaviour
 	private IEnumerator PlaySFX(SFX_VALUE value)
 	{
 		sfxIdx                         = Mathf.Clamp(sfxIdx + 1, 0, audioSourcesSFX.Length - 1);
-		audioSourcesSFX[sfxIdx].volume = sfxVolumeOrigin;
+		audioSourcesSFX[sfxIdx].volume = sfxVolume;
 		audioSourcesSFX[sfxIdx].PlayOneShot(sfxSource[(int)value]);
 
 		yield return new WaitForSeconds(1f);
@@ -231,7 +256,9 @@ public class AudioSystem : MonoBehaviour
 	private IEnumerator PlayGameBGM()
 	{
 		StartCoroutine(PlaySFX(SFX_VALUE.CLICK));
+
 		yield return StartCoroutine(FadeOutBGM(bgmVolumeAdj));
+
 		StopCoroutine(mainBGM);
 		mainBGM = StartCoroutine(RewindGameBGM());
 	}

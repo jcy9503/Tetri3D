@@ -11,54 +11,8 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class GameManager : MonoBehaviour
+public sealed class GameManager : MonoSingleton<GameManager>
 {
-#region Singleton
-
-	private static readonly object      locker = new();
-	private static          bool        shuttingDown;
-	private static          GameManager instance;
-	public static GameManager Instance
-	{
-		get
-		{
-			if (shuttingDown)
-			{
-				Debug.Log("[Singleton] instance GameManager already choked. Returning null.");
-
-				return null;
-			}
-
-			lock (locker)
-			{
-				if (instance != null) return instance;
-
-				instance = FindObjectOfType<GameManager>();
-
-				if (instance == null)
-				{
-					instance = new GameObject("GameManager").AddComponent<GameManager>();
-				}
-
-				DontDestroyOnLoad(instance);
-			}
-
-			return instance;
-		}
-	}
-
-	private void OnApplicationQuit()
-	{
-		shuttingDown = true;
-	}
-
-	private void OnDestroy()
-	{
-		shuttingDown = true;
-	}
-
-#endregion
-
 #region Variables
 
 	// Game Logic
@@ -110,14 +64,6 @@ public class GameManager : MonoBehaviour
 		PAUSE,
 	}
 
-	// System Class
-	public static InputSystem  systemInput;
-	public static CameraSystem systemCamera;
-	public static EffectSystem systemEffect;
-	public static UISystem     systemUI;
-	public static RenderSystem systemRender;
-	public static AudioSystem  systemAudio;
-
 #endregion
 
 #region MonoFunction
@@ -127,7 +73,7 @@ public class GameManager : MonoBehaviour
 		Init();
 	}
 
-	private void Init()
+	protected override void Init()
 	{
 		isGameOver = true;
 		isPause    = true;
@@ -159,13 +105,6 @@ public class GameManager : MonoBehaviour
 		BlockQueue   = new BlockQueue();
 		currentBlock = BlockQueue.GetAndUpdateBlock();
 		canSave      = true;
-
-		systemInput  = gameObject.AddComponent<InputSystem>();
-		systemCamera = gameObject.AddComponent<CameraSystem>();
-		systemEffect = gameObject.AddComponent<EffectSystem>();
-		systemUI     = gameObject.AddComponent<UISystem>();
-		systemRender = gameObject.AddComponent<RenderSystem>();
-		systemAudio  = gameObject.AddComponent<AudioSystem>();
 	}
 
 	private void Update()
@@ -412,14 +351,14 @@ public class GameManager : MonoBehaviour
 
 		if (cleared.Count == 4)
 		{
-			StartCoroutine(PlaySfx(SFX_VALUE.TETRIS1));
-			StartCoroutine(PlaySfx(SFX_VALUE.TETRIS2));
+			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.TETRIS1));
+			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.TETRIS2));
 
 			StartCoroutine(CameraFOVEffect());
 		}
 		else if (cleared.Count > 0)
 		{
-			StartCoroutine(PlaySfx(SFX_VALUE.CLEAR));
+			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.CLEAR));
 		}
 
 		RenderGrid();
@@ -428,7 +367,7 @@ public class GameManager : MonoBehaviour
 
 		if (CheckGameOver())
 		{
-			StartCoroutine(PlaySfx(SFX_VALUE.GAME_OVER));
+			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.GAME_OVER));
 
 			isPause    = true;
 			isGameOver = true;
@@ -488,7 +427,7 @@ public class GameManager : MonoBehaviour
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(SFX_VALUE.UNAVAILABLE));
+			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
 
 			switch (viewAngle)
 			{
@@ -515,7 +454,7 @@ public class GameManager : MonoBehaviour
 		}
 		else
 		{
-			PlayRandomSfx(SFX_VALUE.ROTATE1, SFX_VALUE.ROTATE2);
+			PlayRandomSfx(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
 			Vector3 offset = StartOffset + currentBlock.Pos.ToVector() + new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
 			                 new Vector3(1f, -1f, 1f) * (currentBlock.Size * blockSize * 0.5f);
@@ -583,7 +522,7 @@ public class GameManager : MonoBehaviour
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(SFX_VALUE.UNAVAILABLE));
+			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
 
 			switch (viewAngle)
 			{
@@ -610,7 +549,7 @@ public class GameManager : MonoBehaviour
 		}
 		else
 		{
-			PlayRandomSfx(SFX_VALUE.ROTATE1, SFX_VALUE.ROTATE2);
+			PlayRandomSfx(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
 			Vector3 offset = StartOffset + currentBlock.Pos.ToVector() + new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
 			                 new Vector3(1f, -1f, 1f) * (currentBlock.Size * blockSize * 0.5f);
@@ -657,13 +596,13 @@ public class GameManager : MonoBehaviour
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(SFX_VALUE.UNAVAILABLE));
+			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
 
 			currentBlock.RotateYCounterClockWise();
 		}
 		else
 		{
-			PlayRandomSfx(SFX_VALUE.ROTATE1, SFX_VALUE.ROTATE2);
+			PlayRandomSfx(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
 			Vector3 offset = StartOffset + currentBlock.Pos.ToVector() + new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
 			                 new Vector3(1f, -1f, 1f) * (currentBlock.Size * blockSize * 0.5f);
@@ -693,13 +632,13 @@ public class GameManager : MonoBehaviour
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(SFX_VALUE.UNAVAILABLE));
+			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
 
 			currentBlock.RotateYClockWise();
 		}
 		else
 		{
-			PlayRandomSfx(SFX_VALUE.ROTATE1, SFX_VALUE.ROTATE2);
+			PlayRandomSfx(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
 			Vector3 offset = StartOffset + currentBlock.Pos.ToVector() + new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
 			                 new Vector3(1f, -1f, 1f) * (currentBlock.Size * blockSize * 0.5f);
@@ -750,7 +689,7 @@ public class GameManager : MonoBehaviour
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(SFX_VALUE.UNAVAILABLE));
+			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
 
 			switch (viewAngle)
 			{
@@ -777,7 +716,7 @@ public class GameManager : MonoBehaviour
 		}
 		else
 		{
-			PlayRandomSfx(SFX_VALUE.ROTATE1, SFX_VALUE.ROTATE2);
+			PlayRandomSfx(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
 			Vector3 offset = StartOffset + currentBlock.Pos.ToVector() + new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
 			                 new Vector3(1f, -1f, 1f) * (currentBlock.Size * blockSize * 0.5f);
@@ -845,7 +784,7 @@ public class GameManager : MonoBehaviour
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(SFX_VALUE.UNAVAILABLE));
+			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
 
 			switch (viewAngle)
 			{
@@ -872,7 +811,7 @@ public class GameManager : MonoBehaviour
 		}
 		else
 		{
-			PlayRandomSfx(SFX_VALUE.ROTATE1, SFX_VALUE.ROTATE2);
+			PlayRandomSfx(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
 			Vector3 offset = StartOffset + currentBlock.Pos.ToVector() + new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
 			                 new Vector3(1f, -1f, 1f) * (currentBlock.Size * blockSize * 0.5f);
@@ -923,13 +862,13 @@ public class GameManager : MonoBehaviour
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(SFX_VALUE.UNAVAILABLE));
+			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
 
 			currentBlock.Move(Coord.Right[viewAngle]);
 		}
 		else
 		{
-			StartCoroutine(PlaySfx(SFX_VALUE.MOVE));
+			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.MOVE));
 
 			RefreshCurrentBlock();
 		}
@@ -941,13 +880,13 @@ public class GameManager : MonoBehaviour
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(SFX_VALUE.UNAVAILABLE));
+			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
 
 			currentBlock.Move(Coord.Left[viewAngle]);
 		}
 		else
 		{
-			StartCoroutine(PlaySfx(SFX_VALUE.MOVE));
+			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.MOVE));
 
 			RefreshCurrentBlock();
 		}
@@ -959,13 +898,13 @@ public class GameManager : MonoBehaviour
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(SFX_VALUE.UNAVAILABLE));
+			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
 
 			currentBlock.Move(Coord.Backward[viewAngle]);
 		}
 		else
 		{
-			StartCoroutine(PlaySfx(SFX_VALUE.MOVE));
+			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.MOVE));
 
 			RefreshCurrentBlock();
 		}
@@ -977,13 +916,13 @@ public class GameManager : MonoBehaviour
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(SFX_VALUE.UNAVAILABLE));
+			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
 
 			currentBlock.Move(Coord.Forward[viewAngle]);
 		}
 		else
 		{
-			StartCoroutine(PlaySfx(SFX_VALUE.MOVE));
+			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.MOVE));
 
 			RefreshCurrentBlock();
 		}
@@ -1000,7 +939,7 @@ public class GameManager : MonoBehaviour
 			return;
 		}
 
-		PlayRandomSfx(SFX_VALUE.DROP1, SFX_VALUE.DROP2);
+		PlayRandomSfx(AudioSystem.SFX_VALUE.DROP1, AudioSystem.SFX_VALUE.DROP2);
 
 		currentBlock.Move(Coord.Up);
 		DropEffect();
@@ -1019,13 +958,13 @@ public class GameManager : MonoBehaviour
 
 		if (num > 2)
 		{
-			PlayRandomSfx(SFX_VALUE.HARD_DROP1, SFX_VALUE.HARD_DROP5);
+			PlayRandomSfx(AudioSystem.SFX_VALUE.HARD_DROP1, AudioSystem.SFX_VALUE.HARD_DROP5);
 
 			StartCoroutine(CameraShake());
 		}
 		else
 		{
-			PlayRandomSfx(SFX_VALUE.DROP1, SFX_VALUE.DROP2);
+			PlayRandomSfx(AudioSystem.SFX_VALUE.DROP1, AudioSystem.SFX_VALUE.DROP2);
 		}
 
 		currentBlock.Move(Coord.Up);

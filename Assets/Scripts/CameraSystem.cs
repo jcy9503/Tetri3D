@@ -2,22 +2,22 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Serialization;
 
-public class CameraSystem : MonoBehaviour
+public sealed class CameraSystem : MonoSingleton<CameraSystem>
 {
-	public static    GameObject mainCameraObj;
-	private          Camera     mainCamera;
-	private          Transform  rotatorTr;
-	private          Quaternion mementoRotation;
-	private readonly Quaternion initRotation        = Quaternion.Euler(15f, 0f, 0f);
-	private const    float      rotationConstraintX = 55f;
-	private const    float      speed               = 2000f;
-	private const    float      rotationSpeed       = 1f;
-	private const    float      shakeAmount         = 0.5f;
-	private const    float      shakeTime           = 0.2f;
-	public           bool       isShaking;
-	private          int        viewAngle;
-	private          bool       checkDir;
-	private          bool       dir;
+	public static    GameObject                  mainCameraObj;
+	private          Camera                      mainCamera;
+	private          Transform                   rotatorTr;
+	private          Quaternion                  mementoRotation;
+	private readonly Quaternion                  initRotation        = Quaternion.Euler(15f, 0f, 0f);
+	private const    float                       rotationConstraintX = 55f;
+	private const    float                       speed               = 2000f;
+	private const    float                       rotationSpeed       = 1f;
+	private const    float                       shakeAmount         = 0.5f;
+	private const    float                       shakeTime           = 0.2f;
+	public           bool                        isShaking;
+	private          int                         viewAngle;
+	private          bool                        checkDir;
+	private          bool                        dir;
 	private bool Dir
 	{
 		get => dir;
@@ -34,7 +34,7 @@ public class CameraSystem : MonoBehaviour
 		Init();
 	}
 
-	private void Init()
+	protected override void Init()
 	{
 		mainCameraObj                     = GameObject.Find("Main Camera");
 		mainCameraObj!.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
