@@ -1,20 +1,25 @@
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public sealed class EffectSystem : MonoSingleton<EffectSystem>
 {
-	private       ParticleRender              rotationParticle;
-	private const string                      vfxRotation = "Prefabs/VFX_Rotation";
-	private const string                      vfxDrop     = "Prefabs/VFX_Drop";
-
-	private static readonly int alpha         = Shader.PropertyToID("_Alpha");
-	private static readonly int clear         = Shader.PropertyToID("_Clear");
-	private static readonly int emission      = Shader.PropertyToID("_Emission");
-	private static readonly int over          = Shader.PropertyToID("_GameOver");
-	private static readonly int smoothness    = Shader.PropertyToID("_Smoothness");
-	private static readonly int color         = Shader.PropertyToID("_Color");
-	private static readonly int speed         = Shader.PropertyToID("_Speed");
-	private static readonly int gradientColor = Shader.PropertyToID("_GradientColor");
+	public static           GameObject       effectObj;
+	private static          GameGrid         grid;
+	private static          List<LineMesh>   lineMeshes;
+	private static          List<PrefabMesh> gridMeshes;
+	private const           string           vfxRotation = "Prefabs/VFX_Rotation";
+	private const           string           vfxDrop     = "Prefabs/VFX_Drop";
+	public static          float            lineGlowPower;
+	private static readonly int              alpha      = Shader.PropertyToID("_Alpha");
+	private static readonly int              clear      = Shader.PropertyToID("_Clear");
+	private static readonly int              emission   = Shader.PropertyToID("_Emission");
+	private static readonly int              over       = Shader.PropertyToID("_GameOver");
+	private static readonly int              smoothness = Shader.PropertyToID("_Smoothness");
+	private static readonly int              color      = Shader.PropertyToID("_Color");
+	public static readonly  int              power      = Shader.PropertyToID("_Power");
 
 	public EffectSystem()
 	{
@@ -23,61 +28,35 @@ public sealed class EffectSystem : MonoSingleton<EffectSystem>
 
 	protected override void Init()
 	{
-		rotationParticle = null;
+		effectObj  = GameObject.Find("Effect");
+		grid       = GameManager.grid;
+		lineMeshes = RenderSystem.lineMeshList;
+		gridMeshes = RenderSystem.gridMeshList;
+        
+		lineGlowPower = lineMeshes[0].Renderer.material.GetFloat(power);
+
 	}
 
 	private void DropEffect()
 	{
-		int yMax = currentBlock.Tile.Select(coord => coord.Y).Prepend(-1).Max();
+		int yMax = GameManager.currentBlock.Tile.Select(coord => coord.Y).Prepend(-1).Max();
 
-		foreach (Coord coord in currentBlock.Tile)
+		foreach (Coord coord in GameManager.currentBlock.Tile)
 		{
 			if (coord.Y != yMax) continue;
 
-			Vector3 offset = startOffset + currentBlock.Pos.ToVector() + coord.ToVector() +
-			                 new Vector3(0f, -blockSize / 2f, 0f);
-			ParticleRender ptc = new(vfxDrop, offset, Quaternion.identity);
+			Vector3 offset = RenderSystem.startOffset + GameManager.currentBlock.Pos.ToVector() + coord.ToVector() +
+			                 new Vector3(0f, -GameManager.blockSize / 2f, 0f);
+			ParticleRender ptc = new(vfxDrop, offset, effectObj, Quaternion.identity);
 			Destroy(ptc.Obj, 3f);
 		}
-	}
-
-	private IEnumerator CameraFOVEffect()
-	{
-		const float target      = 120f;
-		float       originFOV   = mainCamera.fieldOfView;
-		float       originSpeed = Grid.Mesh.MRenderer.material.GetFloat(speed);
-
-		isPause = true;
-		Grid.Mesh.MRenderer.material.SetFloat(speed, 10f);
-
-		while (mainCamera.fieldOfView < target - 1f)
-		{
-			mainCamera.fieldOfView =  Mathf.Lerp(mainCamera.fieldOfView, target, 0.1f);
-			audioSourceBGM.pitch   -= 0.02f;
-
-			yield return new WaitForSeconds(0.01f);
-		}
-
-		while (mainCamera.fieldOfView > originFOV + 1f)
-		{
-			mainCamera.fieldOfView =  Mathf.Lerp(mainCamera.fieldOfView, originFOV, 0.2f);
-			audioSourceBGM.pitch   += 0.02f;
-
-			yield return new WaitForSeconds(0.01f);
-		}
-
-		isPause = false;
-
-		mainCamera.fieldOfView = originFOV;
-		Grid.Mesh.MRenderer.material.SetFloat(speed, originSpeed);
-		audioSourceBGM.pitch = 1f;
 	}
 
 	private IEnumerator GridEffect()
 	{
 		const float   alphaUnit = 0.01f;
-		float         alphaSet  = Grid.Mesh.MRenderer.material.GetFloat(alpha) + alphaUnit;
-		Vector3       targetLoc = Grid.Mesh.Obj.transform.position             - Vector3.up    * 5f;
+		float         alphaSet  = grid.Mesh.MRenderer.material.GetFloat(alpha) + alphaUnit;
+		Vector3       targetLoc = grid.Mesh.Obj.transform.position             - Vector3.up    * 5f;
 		float         glowSet   = lineGlowPower                                + lineGlowPower * 0.01f;
 		const float   range     = 0.15f;
 		List<Vector3> listRd    = new();
@@ -89,61 +68,61 @@ public sealed class EffectSystem : MonoSingleton<EffectSystem>
 			                       Random.Range(-range, range)));
 		}
 
-		while ((Grid.Mesh.Obj.transform.position - targetLoc).magnitude > 0.001f)
+		while ((grid.Mesh.Obj.transform.position - targetLoc).magnitude > 0.001f)
 		{
 			alphaSet -= 0.01f;
 			glowSet  -= lineGlowPower * 0.01f;
 
-			Grid.Mesh.Obj.transform.position = Vector3.Lerp(Grid.Mesh.Obj.transform.position, targetLoc, 0.02f);
-			Grid.Mesh.MRenderer.material.SetFloat(alpha, Mathf.Max(alphaSet, 0f));
+			grid.Mesh.Obj.transform.position = Vector3.Lerp(grid.Mesh.Obj.transform.position, targetLoc, 0.02f);
+			grid.Mesh.MRenderer.material.SetFloat(alpha, Mathf.Max(alphaSet, 0f));
 
-			for (int i = 0; i < lineMeshList.Count; ++i)
+			for (int i = 0; i < lineMeshes.Count; ++i)
 			{
-				lineMeshList[i].Renderer.material.SetFloat(power, glowSet);
-				lineMeshList[i].Renderer.material.SetFloat(alpha, alphaSet);
-				lineMeshList[i].Renderer.SetPosition(0, lineMeshList[i].Renderer.GetPosition(0) +
-				                                        listRd[i * 2]);
-				lineMeshList[i].Renderer.SetPosition(1, lineMeshList[i].Renderer.GetPosition(1) +
-				                                        listRd[i * 2 + 1]);
+				lineMeshes[i].Renderer.material.SetFloat(alpha, alphaSet);
+				lineMeshes[i].Renderer.SetPosition(0, lineMeshes[i].Renderer.GetPosition(0) +
+				                                      listRd[i * 2]);
+				lineMeshes[i].Renderer.material.SetFloat(power, glowSet);
+				lineMeshes[i].Renderer.SetPosition(1, lineMeshes[i].Renderer.GetPosition(1) +
+				                                      listRd[i * 2 + 1]);
 			}
 
 			yield return new WaitForSeconds(0.02f);
 		}
 
-		Destroy(Grid.Mesh.Obj);
+		Destroy(grid.Mesh.Obj);
 
-		foreach (LineMesh mesh in lineMeshList)
+		foreach (LineMesh mesh in lineMeshes)
 		{
 			Destroy(mesh.Obj);
 		}
 
-		lineMeshList.Clear();
+		lineMeshes.Clear();
 	}
 
-	private IEnumerator GameOverEffect()
+	public IEnumerator GameOverEffect()
 	{
-		ClearCurrentBlock();
-		ClearShadowBlock();
+		RenderSystem.ClearCurrentBlock();
+		RenderSystem.ClearShadowBlock();
 
 		const float explosionForce  = 200f;
-		float       explosionRadius = Grid.SizeY;
+		float       explosionRadius = grid.SizeY;
 		const float torque          = 50f;
 
-		foreach (PrefabMesh mesh in gridMeshList)
+		foreach (PrefabMesh mesh in gridMeshes)
 		{
 			Rigidbody rb = mesh.Obj.AddComponent<Rigidbody>();
 
 			rb.AddExplosionForce(explosionForce,
-			                     new Vector3(0f, startOffset.y - mesh.Pos.Y - blockSize / 2f, 0f),
-			                     explosionRadius);
+			                     new Vector3(0f, RenderSystem.startOffset.y - mesh.pos.Y -
+			                                     GameManager.blockSize / 2f, 0f), explosionRadius);
 
 			Vector3 rdVec = new(Random.Range(-torque, torque), Random.Range(-torque, torque),
 			                    Random.Range(-torque, torque));
 			rb.AddTorque(rdVec);
 			rb.angularDrag = Random.Range(0.5f, 2f);
 
-			mesh.Renderer.material.SetFloat(over,       1f);
-			mesh.Renderer.material.SetFloat(smoothness, 0f);
+			mesh.renderer.material.SetFloat(over,       1f);
+			mesh.renderer.material.SetFloat(smoothness, 0f);
 		}
 
 		StartCoroutine(GridEffect());
@@ -154,42 +133,42 @@ public sealed class EffectSystem : MonoSingleton<EffectSystem>
 		{
 			alphaSet -= 0.01f;
 
-			foreach (PrefabMesh mesh in gridMeshList)
+			foreach (PrefabMesh mesh in gridMeshes)
 			{
-				mesh.Renderer.material.SetFloat(alpha, alphaSet);
+				mesh.renderer.material.SetFloat(alpha, alphaSet);
 			}
 
 			yield return new WaitForSeconds(0.02f);
 		}
 
-		foreach (PrefabMesh mesh in gridMeshList)
+		foreach (PrefabMesh mesh in gridMeshes)
 		{
 			Destroy(mesh.Obj);
 		}
 
-		gridMeshList.Clear();
+		gridMeshes.Clear();
 	}
 
-	private IEnumerator ClearEffect(List<int> cleared)
+	public IEnumerator ClearEffect(List<int> cleared)
 	{
 		List<PrefabMesh> clearMeshList   = new();
 		const float      explosionForce  = 900f;
-		float            explosionRadius = Grid.SizeX + Grid.SizeZ;
+		float            explosionRadius = grid.SizeX + grid.SizeZ;
 		const float      explosionUp     = 5f;
 		const float      torque          = 100f;
 
 		foreach (int height in cleared)
 		{
-			for (int i = 0; i < Grid.SizeX; ++i)
+			for (int i = 0; i < grid.SizeX; ++i)
 			{
-				for (int j = 0; j < Grid.SizeZ; ++j)
+				for (int j = 0; j < grid.SizeZ; ++j)
 				{
 					Vector3 offset = new(i, -height, j);
-					PrefabMesh mesh = new("Prefabs/Mesh_Block", startOffset + offset, Block.MatPath[^1],
+					PrefabMesh mesh = new("Prefabs/Mesh_Block", RenderSystem.startOffset + offset, Block.MatPath[^1],
 					                      new Coord(i, height, j), ShadowCastingMode.Off);
-					mesh.Renderer.material.SetFloat(clear,    1f);
-					mesh.Renderer.material.SetFloat(color,    Random.Range(0f, 1f));
-					mesh.Renderer.material.SetFloat(emission, 10f);
+					mesh.renderer.material.SetFloat(clear,    1f);
+					mesh.renderer.material.SetFloat(color,    Random.Range(0f, 1f));
+					mesh.renderer.material.SetFloat(emission, 10f);
 
 					Rigidbody rb = mesh.Obj.AddComponent<Rigidbody>();
 
@@ -198,7 +177,7 @@ public sealed class EffectSystem : MonoSingleton<EffectSystem>
 					rb.AddForce(new Vector3(0f, Random.Range(-explosionUp, explosionUp), 0f),
 					            ForceMode.Impulse);
 					rb.AddExplosionForce(explosionForce,
-					                     new Vector3(0f, startOffset.y - height, 0f),
+					                     new Vector3(0f, RenderSystem.startOffset.y - height, 0f),
 					                     explosionRadius);
 
 					Vector3 rdVec = new(Random.Range(-torque, torque), Random.Range(-torque, torque),
@@ -207,7 +186,7 @@ public sealed class EffectSystem : MonoSingleton<EffectSystem>
 					rb.angularDrag = Random.Range(0.5f, 2f);
 
 					clearMeshList.Add(mesh);
-					mesh.Obj.transform.parent = EffectObj.transform;
+					mesh.Obj.transform.parent = effectObj.transform;
 				}
 			}
 		}
@@ -223,8 +202,8 @@ public sealed class EffectSystem : MonoSingleton<EffectSystem>
 			foreach (PrefabMesh mesh in clearMeshList)
 			{
 				mesh.Obj.transform.localScale *= 1.02f;
-				mesh.Renderer.material.SetFloat(alpha,    alphaSet);
-				mesh.Renderer.material.SetFloat(emission, emissionSet);
+				mesh.renderer.material.SetFloat(alpha,    alphaSet);
+				mesh.renderer.material.SetFloat(emission, emissionSet);
 			}
 
 			yield return new WaitForSeconds(0.02f);

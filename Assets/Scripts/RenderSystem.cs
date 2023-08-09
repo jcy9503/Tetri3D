@@ -246,16 +246,16 @@ public class CubeMesh
 public class PrefabMesh
 {
 	public          GameObject Obj { get; set; }
-	public readonly Coord      Pos;
-	public          Renderer   Renderer;
+	public readonly Coord      pos;
+	public readonly Renderer   renderer;
 
 	public PrefabMesh(string meshPath, Vector3 pos, string matPath, Coord coord, ShadowCastingMode shadowMode)
 	{
 		Obj                        = Object.Instantiate(Resources.Load<GameObject>(meshPath), pos, Quaternion.identity);
-		Renderer                   = Obj.GetComponent<Renderer>();
-		Renderer.shadowCastingMode = shadowMode;
-		Renderer.sharedMaterial    = Resources.Load<Material>(matPath);
-		Pos                        = coord;
+		renderer                   = Obj.GetComponent<Renderer>();
+		renderer.shadowCastingMode = shadowMode;
+		renderer.sharedMaterial    = Resources.Load<Material>(matPath);
+		this.pos                   = coord;
 	}
 }
 
@@ -275,31 +275,28 @@ public class ParticleRender
 	}
 }
 
-public class RenderSystem : MonoSingleton<RenderSystem>
+public sealed class RenderSystem : MonoSingleton<RenderSystem>
 {
 	public static           GameObject       blockObj;
 	public static           GameObject       shadowObj;
 	public static           GameObject       gridObj;
-	public static           GameObject       effectObj;
-	private                 List<PrefabMesh> blockMeshList;
-	private                 List<PrefabMesh> shadowMeshList;
-	private                 List<PrefabMesh> gridMeshList;
-	private                 List<LineMesh>   lineMeshList;
-	public                  Vector3          startOffset;
-	private                 float            lineGlowPower;
-	private static readonly int              power = Shader.PropertyToID("_Power");
+	private static          List<PrefabMesh> blockMeshList;
+	private static          List<PrefabMesh> shadowMeshList;
+	public static           List<PrefabMesh> gridMeshList;
+	public static           List<LineMesh>   lineMeshList;
+	public static           Vector3          startOffset;
+	private static readonly int              gradientColor = Shader.PropertyToID("_GradientColor");
 
 	public RenderSystem()
 	{
 		Init();
 	}
 
-	private void Init()
+	protected override void Init()
 	{
 		gridObj   = GameObject.Find("Grid");
 		blockObj  = GameObject.Find("Blocks");
 		shadowObj = GameObject.Find("Shadow");
-		effectObj = GameObject.Find("Effect");
 
 		startOffset = new Vector3(-GameManager.grid.SizeX / 2f + GameManager.blockSize / 2,
 		                          GameManager.grid.SizeY  / 2f - GameManager.blockSize / 2,
@@ -310,7 +307,6 @@ public class RenderSystem : MonoSingleton<RenderSystem>
 		gridMeshList   = new List<PrefabMesh>();
 		lineMeshList   = new List<LineMesh>();
 		RenderLine();
-		lineGlowPower = lineMeshList[0].Renderer.material.GetFloat(power);
 
 		RenderCurrentBlock();
 		RenderShadowBlock();
@@ -318,7 +314,7 @@ public class RenderSystem : MonoSingleton<RenderSystem>
 		if (GameManager.testGrid) RenderGrid();
 	}
 
-	private void RenderLine()
+	public static void RenderLine()
 	{
 		const float width = 0.05f;
 
@@ -419,7 +415,7 @@ public class RenderSystem : MonoSingleton<RenderSystem>
 		lineMeshList.Add(mesh12);
 	}
 
-	private void RenderCurrentBlock()
+	public void RenderCurrentBlock()
 	{
 		ClearCurrentBlock();
 
@@ -442,11 +438,11 @@ public class RenderSystem : MonoSingleton<RenderSystem>
 		do
 		{
 			GameManager.currentBlock.Move(Coord.Down);
-		} while (GameManager.BlockFits(shadowBlock));
+		} while (GameManager.BlockFits(GameManager.shadowBlock));
 
-		shadowBlock.Move(Coord.Up);
+		GameManager.shadowBlock.Move(Coord.Up);
 
-		foreach (Coord coord in shadowBlock.TilePositions())
+		foreach (Coord coord in GameManager.shadowBlock.TilePositions())
 		{
 			Vector3 offset = new(coord.X, -coord.Y, coord.Z);
 			PrefabMesh mesh = new("Prefabs/Mesh_Block", startOffset + offset,
@@ -457,26 +453,26 @@ public class RenderSystem : MonoSingleton<RenderSystem>
 		}
 	}
 
-	private void RenderGrid()
+	public void RenderGrid()
 	{
 		ClearGrid();
 
-		for (int i = 0; i < GameManager.GameManager.Grid.SizeY; ++i)
+		for (int i = 0; i < GameManager.grid.SizeY; ++i)
 		{
-			for (int j = 0; j < GameManager.GameManager.Grid.SizeX; ++j)
+			for (int j = 0; j < GameManager.grid.SizeX; ++j)
 			{
-				for (int k = 0; k < GameManager.GameManager.Grid.SizeZ; ++k)
+				for (int k = 0; k < GameManager.grid.SizeZ; ++k)
 				{
-					if (Grid[j, i, k] != 0)
+					if (GameManager.grid[j, i, k] != 0)
 					{
 						Vector3 offset = new(j, -i, k);
 						PrefabMesh mesh = new("Prefabs/Mesh_Block", startOffset + offset, Block.MatPath[^1],
 						                      new Coord(j, i, k), ShadowCastingMode.Off);
-						mesh.Renderer.material.SetFloat(gradientColor,
-						                                (float)i / (GameManager.GameManager.Grid.SizeY - 1));
+						mesh.renderer.material.SetFloat(gradientColor,
+						                                (float)i / (GameManager.grid.SizeY - 1));
 
 						gridMeshList.Add(mesh);
-						mesh.Obj.transform.parent = GameManager.GridObj.transform;
+						mesh.Obj.transform.parent = gridObj.transform;
 					}
 				}
 			}
@@ -489,7 +485,7 @@ public class RenderSystem : MonoSingleton<RenderSystem>
 		RenderShadowBlock();
 	}
 
-	private void ClearCurrentBlock()
+	public static void ClearCurrentBlock()
 	{
 		foreach (PrefabMesh mesh in blockMeshList)
 		{
@@ -499,7 +495,7 @@ public class RenderSystem : MonoSingleton<RenderSystem>
 		blockMeshList.Clear();
 	}
 
-	private void ClearShadowBlock()
+	public static void ClearShadowBlock()
 	{
 		foreach (PrefabMesh mesh in shadowMeshList)
 		{
@@ -509,7 +505,7 @@ public class RenderSystem : MonoSingleton<RenderSystem>
 		shadowMeshList.Clear();
 	}
 
-	private void ClearGrid()
+	private static void ClearGrid()
 	{
 		foreach (PrefabMesh mesh in gridMeshList)
 		{
@@ -527,6 +523,6 @@ public class RenderSystem : MonoSingleton<RenderSystem>
 		if (GameManager.testGrid) RenderGrid();
 
 		RenderLine();
-		lineGlowPower = lineMeshList[0].Renderer.material.GetFloat(power);
+		EffectSystem.lineGlowPower = lineMeshList[0].Renderer.material.GetFloat(EffectSystem.power);
 	}
 }

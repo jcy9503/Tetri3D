@@ -4,21 +4,21 @@ using UnityEngine.Serialization;
 
 public sealed class CameraSystem : MonoSingleton<CameraSystem>
 {
-	public static    GameObject                  mainCameraObj;
-	private          Camera                      mainCamera;
-	private          Transform                   rotatorTr;
-	private          Quaternion                  mementoRotation;
-	private readonly Quaternion                  initRotation        = Quaternion.Euler(15f, 0f, 0f);
-	private const    float                       rotationConstraintX = 55f;
-	private const    float                       speed               = 2000f;
-	private const    float                       rotationSpeed       = 1f;
-	private const    float                       shakeAmount         = 0.5f;
-	private const    float                       shakeTime           = 0.2f;
-	public           bool                        isShaking;
-	private          int                         viewAngle;
-	private          bool                        checkDir;
-	private          bool                        dir;
-	private bool Dir
+	public static    GameObject mainCameraObj;
+	public static    Camera     mainCamera;
+	public static    Transform  rotatorTr;
+	public static    Quaternion mementoRotation;
+	private readonly Quaternion initRotation        = Quaternion.Euler(15f, 0f, 0f);
+	public const     float      rotationConstraintX = 55f;
+	public const     float      cameraSpeed         = 2000f;
+	private const    float      rotationSpeed       = 1f;
+	private const    float      shakeAmount         = 0.5f;
+	private const    float      shakeTime           = 0.2f;
+	public static    bool       isShaking;
+	public static    int        viewAngle;
+	public static    bool       checkDir;
+	private static   bool       dir;
+	public static bool Dir
 	{
 		get => dir;
 		set
@@ -28,6 +28,7 @@ public sealed class CameraSystem : MonoSingleton<CameraSystem>
 			dir = value;
 		}
 	}
+	private static readonly int speed = Shader.PropertyToID("_Speed");
 
 	public CameraSystem()
 	{
@@ -38,7 +39,7 @@ public sealed class CameraSystem : MonoSingleton<CameraSystem>
 	{
 		mainCameraObj                     = GameObject.Find("Main Camera");
 		mainCameraObj!.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
-		mainCamera                        = mainCameraObj.GetComponent<CameraSystem>();
+		mainCamera                        = mainCameraObj.GetComponent<Camera>();
 		rotatorTr                         = GameObject.Find("Rotator").GetComponent<Transform>();
 		mementoRotation                   = Quaternion.identity;
 		Dir                               = false;
@@ -47,7 +48,7 @@ public sealed class CameraSystem : MonoSingleton<CameraSystem>
 		isShaking                         = false;
 	}
 
-	public void RotateHorizontal(bool direction)
+	public static void RotateHorizontal(bool direction)
 	{
 		Quaternion target = rotatorTr.rotation;
 
@@ -59,10 +60,10 @@ public sealed class CameraSystem : MonoSingleton<CameraSystem>
 		                                             rotationConstraintX),
 		                                 target.eulerAngles.y, 0f);
 		rotatorTr.rotation = Quaternion.RotateTowards(rotatorTr.rotation, target,
-		                                              speed * Time.deltaTime);
+		                                              cameraSpeed * Time.deltaTime);
 	}
 
-	public void RotateVertical(bool direction)
+	public static void RotateVertical(bool direction)
 	{
 		Quaternion rotation = rotatorTr.rotation;
 		Quaternion target   = rotation;
@@ -71,15 +72,15 @@ public sealed class CameraSystem : MonoSingleton<CameraSystem>
 		target.eulerAngles =  new Vector3(target.eulerAngles.x, target.eulerAngles.y, 0f);
 
 		rotation = Quaternion.RotateTowards(rotation, target,
-		                                    speed * Time.deltaTime);
+		                                    cameraSpeed * Time.deltaTime);
 		rotatorTr.rotation = rotation;
 	}
 
-	public IEnumerator AngleCalculate()
+	public static IEnumerator AngleCalculate()
 	{
 		while (true)
 		{
-			if (gameOver) break;
+			if (GameManager.isGameOver) break;
 
 			viewAngle = rotatorTr.rotation.eulerAngles.y switch
 			{
@@ -89,7 +90,7 @@ public sealed class CameraSystem : MonoSingleton<CameraSystem>
 				_                  => 3
 			};
 
-			yield return new WaitForSeconds(defaultKeyInterval);
+			yield return new WaitForSeconds(InputSystem.defaultKeyInterval);
 		}
 	}
 
@@ -150,5 +151,38 @@ public sealed class CameraSystem : MonoSingleton<CameraSystem>
 		rotatorTr.position = Vector3.zero;
 
 		isShaking = false;
+	}
+
+	public IEnumerator CameraFOVEffect()
+	{
+		const float target      = 120f;
+		float       originFOV   = mainCamera.fieldOfView;
+		Material    material    = GameManager.grid.Mesh.MRenderer.material;
+		float       originSpeed = material.GetFloat(speed);
+
+		GameManager.isPause = true;
+		material.SetFloat(speed, 10f);
+
+		while (mainCamera.fieldOfView < target - 1f)
+		{
+			mainCamera.fieldOfView           =  Mathf.Lerp(mainCamera.fieldOfView, target, 0.1f);
+			AudioSystem.audioSourceBGM.pitch -= 0.02f;
+
+			yield return new WaitForSeconds(0.01f);
+		}
+
+		while (mainCamera.fieldOfView > originFOV + 1f)
+		{
+			mainCamera.fieldOfView =  Mathf.Lerp(mainCamera.fieldOfView, originFOV, 0.2f);
+			AudioSystem.audioSourceBGM.pitch   += 0.02f;
+
+			yield return new WaitForSeconds(0.01f);
+		}
+
+		GameManager.isPause = false;
+
+		mainCamera.fieldOfView = originFOV;
+		GameManager.grid.Mesh.MRenderer.material.SetFloat(speed, originSpeed);
+		AudioSystem.audioSourceBGM.pitch = 1f;
 	}
 }

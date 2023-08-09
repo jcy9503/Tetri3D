@@ -2,26 +2,24 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EnvironmentSystem : MonoBehaviour
+public sealed class EnvironmentSystem : MonoSingleton<EnvironmentSystem>
 {
-	private       GameObject      cubeMeshes;
-	private       List<Transform> cubeTrs;
-	private       Animator[]      cubeAnimators;
-	private       Renderer[]      cubeRenderers;
-	private       List<bool>      cubesFloating;
-	private const int             totalAnim = 4;
-	private       Coroutine       animFunc;
-	
-	private static readonly int speed = Shader.PropertyToID("_Speed");
-	private static readonly int phase = Animator.StringToHash("Phase");
+	private                 GameObject      cubeMeshes;
+	private                 List<Transform> cubeTrs;
+	private                 Animator[]      cubeAnimators;
+	private                 Renderer[]      cubeRenderers;
+	private                 List<bool>      cubesFloating;
+	private const           int             totalAnim = 4;
+	public                  Coroutine       animFunc;
+	private static readonly int             speed = Shader.PropertyToID("_Speed");
+	private static readonly int             phase = Animator.StringToHash("Phase");
 
-	
 	public EnvironmentSystem()
 	{
 		Init();
 	}
 
-	private void Init()
+	protected override void Init()
 	{
 		cubeMeshes    = GameObject.Find("Meshes");
 		cubeTrs       = new List<Transform>();
@@ -76,11 +74,13 @@ public class EnvironmentSystem : MonoBehaviour
 
 		animFunc = StartCoroutine(AnimChange());
 	}
-	
+
 	private IEnumerator AnimChange()
 	{
 		while (true)
 		{
+			if (GameManager.isGameOver) break;
+			
 			int randObj = Random.Range(0, cubeAnimators.Length);
 			int randInt = Random.Range(0, totalAnim);
 
@@ -93,7 +93,7 @@ public class EnvironmentSystem : MonoBehaviour
 		}
 	}
 
-	private IEnumerator AnimStop()
+	public IEnumerator AnimStop()
 	{
 		const float slowDown = 0.01f;
 

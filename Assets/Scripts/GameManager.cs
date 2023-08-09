@@ -16,16 +16,16 @@ public sealed class GameManager : MonoSingleton<GameManager>
 #region Variables
 
 	// Game Logic
-	private        int[]           gridSize = { 10, 22, 10 };
-	public static  bool            isGameOver;
-	public static  bool            isPause;
-	private static List<Coroutine> updateLogics;
+	private       int[]           gridSize = { 10, 22, 10 };
+	public static bool            isGameOver;
+	public static bool            isPause;
+	private       List<Coroutine> updateLogics;
 
 	// Score
-	private const           int   baseScore  = 100;
-	private static readonly int[] scoreValue = { 1, 2, 4, 8 };
-	private static          int   comboIdx   = 0;
-	public static           int   totalScore;
+	private const    int   baseScore  = 100;
+	private readonly int[] scoreValue = { 1, 2, 4, 8 };
+	private static   int   comboIdx   = 0;
+	private static   int   totalScore;
 
 	// Test
 	public static bool             testGrid;
@@ -33,17 +33,18 @@ public sealed class GameManager : MonoSingleton<GameManager>
 	public static bool             testBlock;
 	public static int              testHeight;
 	public static int              testFieldSize;
-	public static Block.BLOCK_TYPE testBlockType;
+	public        Block.BLOCK_TYPE testBlockType;
 
 	// Grid / Blocks
-	public static  GameGrid   grid;
-	private static BlockQueue BlockQueue { get; set; }
-	public static  Block      currentBlock;
-	public static  Block      shadowBlock;
-	public static  Block      saveBlock;
-	public static  bool       canSave;
-	public const   float      blockSize    = 1.0f;
-	private const  float      downInterval = 1.0f;
+	public static  GameGrid       grid;
+	private static BlockQueue     BlockQueue { get; set; }
+	public static  Block          currentBlock;
+	public static  Block          shadowBlock;
+	public static  Block          saveBlock;
+	public static  bool           canSave;
+	public const   float          blockSize    = 1.0f;
+	private const  float          downInterval = 1.0f;
+	public         ParticleRender rotationParticle;
 
 	public enum INPUT_CONTROL
 	{
@@ -68,7 +69,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 #region MonoFunction
 
-	private void Awake()
+	private void Start()
 	{
 		Init();
 	}
@@ -105,6 +106,9 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		BlockQueue   = new BlockQueue();
 		currentBlock = BlockQueue.GetAndUpdateBlock();
 		canSave      = true;
+		
+		rotationParticle = null;
+
 	}
 
 	private void Update()
@@ -114,7 +118,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 			Terminate();
 		}
 
-		INPUT_CONTROL control = systemInput.InputWindows();
+		INPUT_CONTROL control = InputSystem.Instance.InputWindows();
 
 		if (!isPause)
 		{
@@ -213,38 +217,38 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 #region GameControl
 
-	private static void SaveBlock()
+	private void SaveBlock()
 	{
 		canSave = false;
-		systemAudio.BurstSFX(AudioSystem.SFX_VALUE.SHIFT);
+		AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.SHIFT);
 		currentBlock = BlockQueue.SaveAndUpdateBlock(currentBlock);
-		systemRender.RefreshCurrentBlock();
+		RenderSystem.Instance.RefreshCurrentBlock();
 	}
 
 	public IEnumerator GameStart()
 	{
-		systemAudio.GameStart();
+		AudioSystem.Instance.GameStart();
 
-		yield return StartCoroutine(systemCamera.GameStart());
+		yield return StartCoroutine(CameraSystem.Instance.GameStart());
 
 		isPause = false;
 
 		updateLogics = new List<Coroutine>
 		{
 			StartCoroutine(BlockDown()),
-			StartCoroutine(systemCamera.AngleCalculate()),
+			StartCoroutine(CameraSystem.AngleCalculate()),
 		};
 	}
 
 	public IEnumerator GameHome()
 	{
-		systemAudio.BurstSFX(AudioSystem.SFX_VALUE.CLICK);
+		AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.CLICK);
 
-		yield return StartCoroutine(systemCamera.MainMenu());
+		yield return StartCoroutine(CameraSystem.Instance.MainMenu());
 
 		isPause = true;
 
-		systemAudio.MainMenu();
+		AudioSystem.Instance.MainMenu();
 
 		Reset();
 	}
@@ -266,16 +270,16 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		BlockQueue.SaveBlockReset();
 		canSave = true;
 
-		systemRender.Reset();
+		RenderSystem.Instance.Reset();
 	}
 
 	public void GamePause()
 	{
 		isPause = true;
 
-		systemAudio.BurstSFX(AudioSystem.SFX_VALUE.PAUSE);
+		AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.PAUSE);
 
-		systemAudio.PauseBGM(AudioSystem.bgmVolumeAdj);
+		AudioSystem.Instance.PauseBGM(AudioSystem.bgmVolumeAdj);
 
 		foreach (Coroutine coroutine in updateLogics)
 		{
@@ -287,19 +291,19 @@ public sealed class GameManager : MonoSingleton<GameManager>
 	{
 		isPause = false;
 
-		systemAudio.BurstSFX(AudioSystem.SFX_VALUE.RESUME);
+		AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.RESUME);
 
-		systemAudio.ResumeBGM(AudioSystem.bgmVolumeAdj);
+		AudioSystem.Instance.ResumeBGM(AudioSystem.bgmVolumeAdj);
 
 		updateLogics.Add(StartCoroutine(BlockDown()));
-		updateLogics.Add(StartCoroutine(AngleCalculate()));
+		updateLogics.Add(StartCoroutine(CameraSystem.AngleCalculate()));
 	}
 
 	private IEnumerator BlockDown()
 	{
 		while (true)
 		{
-			RenderCurrentBlock();
+			RenderSystem.Instance.RenderCurrentBlock();
 
 			if (!grid.IsPlaneEmpty(0))
 			{
@@ -327,7 +331,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		}
 	}
 
-	private static bool BlockFits(Block block)
+	public static bool BlockFits(Block block)
 	{
 		return block.TilePositions().All(coord => grid.IsEmpty(coord.X, coord.Y, coord.Z));
 	}
@@ -347,53 +351,57 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		List<int> cleared = grid.ClearFullRows();
 		ScoreCalc(cleared.Count);
 
-		StartCoroutine(ClearEffect(cleared));
+		StartCoroutine(EffectSystem.Instance.ClearEffect(cleared));
 
 		if (cleared.Count == 4)
 		{
-			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.TETRIS1));
-			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.TETRIS2));
+			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.TETRIS1);
+			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.TETRIS2);
 
-			StartCoroutine(CameraFOVEffect());
+			StartCoroutine(CameraSystem.Instance.CameraFOVEffect());
 		}
 		else if (cleared.Count > 0)
 		{
-			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.CLEAR));
+			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.CLEAR);
 		}
 
-		RenderGrid();
+		RenderSystem.Instance.RenderGrid();
 
 		cleared.Clear();
 
 		if (CheckGameOver())
 		{
-			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.GAME_OVER));
+			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.GAME_OVER);
 
 			isPause    = true;
 			isGameOver = true;
 
-			gameOverScoreText.text = totalScore.ToString();
+			UISystem.Instance.PrintScore(totalScore);
 
-			StopCoroutine(animFunc);
-			StartCoroutine(PitchDownBGM(0.2f));
-			StartCoroutine(GameOverEffect());
-			StartCoroutine(AnimStop());
-			StartCoroutine(UIFadeInOut(playCanvas, gameOverCanvas, 1f));
+			StartCoroutine(AudioSystem.Instance.PitchDownBGM(0.2f));
+			StartCoroutine(EffectSystem.Instance.GameOverEffect());
+			StartCoroutine(EnvironmentSystem.Instance.AnimStop());
+			StartCoroutine(UISystem.Instance.FadeOutIn("PlayScreen", "GameOverScreen", 1f));
 		}
 		else
 		{
 			canSave      = true;
 			currentBlock = BlockQueue.GetAndUpdateBlock();
-			RefreshCurrentBlock();
+			RenderSystem.Instance.RefreshCurrentBlock();
 		}
 	}
 
 	private void ScoreCalc(int cleared)
 	{
-		if (cleared == 0) return;
+		if (cleared == 0)
+		{
+			comboIdx = 0;
 
-		totalScore           += baseScore * scoreValue[cleared - 1];
-		inGameScoreText.text =  totalScore.ToString();
+			return;
+		}
+
+		totalScore += baseScore * (int)Mathf.Pow(scoreValue[cleared - 1], ++comboIdx);
+		UISystem.Instance.ScoreUpdate(totalScore);
 	}
 
 #endregion
@@ -402,7 +410,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 	public void RotateBlockX()
 	{
-		switch (viewAngle)
+		switch (CameraSystem.viewAngle)
 		{
 			case 0:
 				currentBlock.RotateXClockWise();
@@ -427,9 +435,9 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
+			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
-			switch (viewAngle)
+			switch (CameraSystem.viewAngle)
 			{
 				case 0:
 					currentBlock.RotateXCounterClockWise();
@@ -454,14 +462,14 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		}
 		else
 		{
-			PlayRandomSfx(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
+			AudioSystem.Instance.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
-			Vector3 offset = StartOffset + currentBlock.Pos.ToVector() + new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
+			Vector3 offset = RenderSystem.startOffset + currentBlock.Pos.ToVector() + new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
 			                 new Vector3(1f, -1f, 1f) * (currentBlock.Size * blockSize * 0.5f);
 
 			Quaternion rotation;
 
-			switch (viewAngle)
+			switch (CameraSystem.viewAngle)
 			{
 				case 0:
 					rotation         = Quaternion.Euler(0f, 0f, 90f);

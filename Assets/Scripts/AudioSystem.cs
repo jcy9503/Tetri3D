@@ -46,7 +46,6 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 		"BGM/BGM11",
 		"BGM/BGM12",
 	};
-
 	private readonly string[] SFX_PATH =
 	{
 		"SFX/Bool",
@@ -73,13 +72,12 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 		"SFX/Tetris2",
 		"SFX/Resume",
 	};
-
-	private AudioSource     audioSourceBGM;
-	private AudioSource[]   audioSourcesSFX;
-	private List<AudioClip> bgmSource;
-	private List<AudioClip> sfxSource;
-	private int             sfxIdx;
-	private float           bgmVolume = 0.2f;
+	public static AudioSource     audioSourceBGM;
+	public static AudioSource[]   audioSourcesSFX;
+	private static List<AudioClip> bgmSource;
+	private static List<AudioClip> sfxSource;
+	private static int             sfxIdx;
+	private static float           bgmVolume = 0.2f;
 	public float BGMVolume
 	{
 		get => bgmVolume;
@@ -89,22 +87,22 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 			audioSourceBGM.volume = bgmVolume;
 		}
 	}
-
-	private const float     bgmVolumeAdj    = 3f;
-	private       float     sfxVolume = 1f;
+	public const float bgmVolumeAdj = 3f;
+	private      float sfxVolume    = 1f;
 	public float SFXVolume
 	{
 		get => sfxVolume;
 		set
 		{
 			sfxVolume = Mathf.Clamp(value, 0f, 1f);
+
 			for (int i = 0; i < audioSourcesSFX.Length; i++)
 			{
 				audioSourcesSFX[i].volume = sfxVolume;
 			}
 		}
 	}
-	private const float     audioInterval   = 2f;
+	private const float     audioInterval = 2f;
 	private       Coroutine mainBGM;
 
 	public AudioSystem()
@@ -147,6 +145,7 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 
 		while (true)
 		{
+			if (GameManager.isGameOver) break;
 			if (!audioSourceBGM.isPlaying)
 				audioSourceBGM.Play();
 
@@ -176,7 +175,7 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 		audioSourceBGM.Play();
 	}
 
-	private IEnumerator PitchDownBGM(float acc)
+	public IEnumerator PitchDownBGM(float acc)
 	{
 		const float volDown   = 0.01f;
 		const float pitchDown = 0.01f;
@@ -246,7 +245,7 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 		--sfxIdx;
 	}
 
-	private void PlayRandomSFX(SFX_VALUE start, SFX_VALUE end)
+	public void PlayRandomSFX(SFX_VALUE start, SFX_VALUE end)
 	{
 		int rand = Random.Range((int)start, (int)end + 1);
 

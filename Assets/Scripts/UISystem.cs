@@ -6,30 +6,28 @@ using TMPro;
 
 public sealed class UISystem : MonoSingleton<UISystem>
 {
-	private Dictionary<string, CanvasGroup> screenObjects;
-	private Dictionary<string, Dictionary<string, Button>>           buttons;
-
+	private Dictionary<string, CanvasGroup>                screenObjects;
+	private Dictionary<string, Dictionary<string, Button>> buttons;
 	private readonly string[] SCREEN_STR =
 	{
-		new("MainScreen"),
-		new("PlayScreen"),
-		new("OptionScreen"),
-		new("LeaderBoardScreen"),
-		new("GameOverScreen"),
+		"MainScreen",
+		"PlayScreen",
+		"OptionScreen",
+		"LeaderBoardScreen",
+		"GameOverScreen",
 	};
 
 #region Main Screen
 
 	private readonly string[] MAIN_BTN_STR =
 	{
-		new("Start"),
-		new("Option"),
-		new("LeaderBoard"),
-		new("Quit"),
-		new("QuitYes"),
-		new("QuitNo"),
+		"Start",
+		"Option",
+		"LeaderBoard",
+		"Quit",
+		"QuitYes",
+		"QuitNo",
 	};
-
 	private GameObject mainQuitPanel;
 
 #endregion
@@ -37,32 +35,29 @@ public sealed class UISystem : MonoSingleton<UISystem>
 #region Play Screen
 
 	private Dictionary<string, GameObject> playObjects;
-
 	private readonly string[] PLAY_OBJ_STR =
 	{
-		new("PauseScreen"),
-		new("ControlScreen"),
-		new("BlockMove"),
-		new("BlockRotate"),
+		"PauseScreen",
+		"ControlScreen",
+		"BlockMove",
+		"BlockRotate",
 	};
-
 	private readonly string[] PLAY_BTN_STR =
 	{
-		new("Pause"),
-		new("PauseHome"),
-		new("PauseResume"),
-		new("BlockLeft"),
-		new("BlockRight"),
-		new("BlockForward"),
-		new("BlockBackward"),
-		new("RotateX"),
-		new("RotateXInv"),
-		new("RotateY"),
-		new("RotateYInv"),
-		new("RotateZ"),
-		new("RotateZInv"),
+		"Pause",
+		"PauseHome",
+		"PauseResume",
+		"BlockLeft",
+		"BlockRight",
+		"BlockForward",
+		"BlockBackward",
+		"RotateX",
+		"RotateXInv",
+		"RotateY",
+		"RotateYInv",
+		"RotateZ",
+		"RotateZInv",
 	};
-
 	private TMP_Text playScoreTxt;
 
 #endregion
@@ -71,32 +66,54 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 	private enum SLIDER_TYPE
 	{
-		BGM,
+		BGM = 0,
 		SFX,
+		COUNT
+	}
+
+	private enum OPTION_PANEL
+	{
+		SOUND = 0,
+		GRAPHIC,
+		CONTROL,
 		COUNT
 	}
 
 	private readonly string[] OPTION_BTN_STR =
 	{
-		new("SoundTab"),
-		new("GraphicTab"),
-		new("ControlTab"),
-		new("OptionHome"),
-		new("ColorToggle"),
-		new("ButtonToggle"),
-		new("ButtonHelp"),
+		"SoundTab",
+		"GraphicTab",
+		"ControlTab",
+		"OptionHome",
+		"ColorToggle",
+		"ButtonToggle",
+		"ButtonHelp",
 	};
-
-	private Slider sliderBGM;
-	private Slider sliderSFX;
+	private OPTION_PANEL curPanel = OPTION_PANEL.SOUND;
+	private Slider       sliderBGM;
+	private Slider       sliderSFX;
 
 #endregion
 
 #region Leader Board Screen
 
+	private readonly string[] LEADER_BOARD_BTN_STR =
+	{
+		"LeaderBoardHome",
+	};
+	private const string     LEADER_BOARD_ASSET = "UI/Prefabs/Board";
+	private       GameObject leaderBoardContents;
+
 #endregion
 
 #region Game Over Screen
+
+	private readonly string[] GAME_OVER_BTN_STR =
+	{
+		"GameOverHome",
+		"GameOverRetry",
+	};
+	private TMP_Text gameOverScoreTxt;
 
 #endregion
 
@@ -107,18 +124,11 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 	protected override void Init()
 	{
-		Queue<GameObject> screenObjs = new();
-
-		for (int i = 0; i < SCREEN_STR.Length; ++i)
-		{
-			screenObjs.Enqueue(GameObject.Find(SCREEN_STR[i]));
-		}
-
 		screenObjects = new Dictionary<string, CanvasGroup>();
 
 		for (int i = 0; i < SCREEN_STR.Length; ++i)
 		{
-			screenObjects.Add(SCREEN_STR[i], (screenObjs.Dequeue().GetComponent<CanvasGroup>()));
+			screenObjects.Add(SCREEN_STR[i], GameObject.Find(SCREEN_STR[i]).GetComponent<CanvasGroup>());
 		}
 
 		buttons = new Dictionary<string, Dictionary<string, Button>>();
@@ -141,22 +151,22 @@ public sealed class UISystem : MonoSingleton<UISystem>
 			mainObjs.Enqueue(GameObject.Find(MAIN_BTN_STR[i]));
 		}
 
-		buttons.Add("MainButtons", new Dictionary<string, Button>());
+		buttons.Add(SCREEN_STR[0], new Dictionary<string, Button>());
 
 		for (int i = 0; i < MAIN_BTN_STR.Length; ++i)
 		{
-			buttons["MainButtons"].Add(MAIN_BTN_STR[i], mainObjs.Dequeue().GetComponent<Button>());
+			buttons[SCREEN_STR[0]].Add(MAIN_BTN_STR[i], mainObjs.Dequeue().GetComponent<Button>());
 		}
 
-		buttons["MainButtons"]["Start"].onClick.AddListener(() => StartCoroutine(GameStart()));
+		buttons[SCREEN_STR[0]][MAIN_BTN_STR[0]].onClick.AddListener(() => StartCoroutine(GameStart()));
 		//mainButtons["Option"].onClick.AddListener(Option);
 		//mainButtons["LeaderBoard"].onClick.AddListener(LeaderBoard);
-		buttons["MainButtons"]["Quit"].onClick.AddListener(() => mainQuitPanel.gameObject.SetActive(true));
-		buttons["MainButtons"]["QuitYes"].onClick.AddListener(Application.Quit);
-		buttons["MainButtons"]["QuitNo"].onClick.AddListener(() => mainQuitPanel.gameObject.SetActive(false));
+		buttons[SCREEN_STR[0]][MAIN_BTN_STR[3]].onClick.AddListener(() => mainQuitPanel.gameObject.SetActive(true));
+		buttons[SCREEN_STR[0]][MAIN_BTN_STR[4]].onClick.AddListener(Application.Quit);
+		buttons[SCREEN_STR[0]][MAIN_BTN_STR[5]].onClick.AddListener(() => mainQuitPanel.gameObject.SetActive(false));
 
 		mainQuitPanel.SetActive(false);
-		screenObjects["MainScreen"].gameObject.SetActive(true);
+		screenObjects[SCREEN_STR[0]].gameObject.SetActive(true);
 	}
 
 	private void InitPlayScreen()
@@ -168,26 +178,26 @@ public sealed class UISystem : MonoSingleton<UISystem>
 			playObjects.Add(PLAY_OBJ_STR[i], GameObject.Find(PLAY_OBJ_STR[i]));
 		}
 
-		buttons.Add("PlayButtons", new Dictionary<string, Button>());
+		buttons.Add(SCREEN_STR[1], new Dictionary<string, Button>());
 
 		for (int i = 0; i < PLAY_BTN_STR.Length; ++i)
 		{
-			buttons["PlayButtons"].Add(PLAY_BTN_STR[i], GameObject.Find(PLAY_BTN_STR[i]).GetComponent<Button>());
+			buttons[SCREEN_STR[1]].Add(PLAY_BTN_STR[i], GameObject.Find(PLAY_BTN_STR[i]).GetComponent<Button>());
 		}
 
-		buttons["PlayButtons"]["PauseHome"].onClick.AddListener(PauseHome);
-		buttons["PlayButtons"]["Pause"].onClick.AddListener(GamePause);
-		buttons["PlayButtons"]["PauseResume"].onClick.AddListener(GameResume);
-		buttons["PlayButtons"]["BlockLeft"].onClick.AddListener(GameManager.Instance.MoveBlockLeft);
-		buttons["PlayButtons"]["BlockRight"].onClick.AddListener(GameManager.Instance.MoveBlockRight);
-		buttons["PlayButtons"]["BlockForward"].onClick.AddListener(GameManager.Instance.MoveBlockForward);
-		buttons["PlayButtons"]["BlockBackward"].onClick.AddListener(GameManager.Instance.MoveBlockBackward);
-		buttons["PlayButtons"]["RotateX"].onClick.AddListener(GameManager.Instance.RotateBlockX);
-		buttons["PlayButtons"]["RotateXInv"].onClick.AddListener(GameManager.Instance.RotateBlockXInv);
-		buttons["PlayButtons"]["RotateY"].onClick.AddListener(GameManager.Instance.RotateBlockY);
-		buttons["PlayButtons"]["RotateYInv"].onClick.AddListener(GameManager.Instance.RotateBlockYInv);
-		buttons["PlayButtons"]["RotateZ"].onClick.AddListener(GameManager.Instance.RotateBlockZ);
-		buttons["PlayButtons"]["RotateZInv"].onClick.AddListener(GameManager.Instance.RotateBlockZInv);
+		buttons[SCREEN_STR[1]][PLAY_BTN_STR[0]].onClick.AddListener(GamePause);
+		buttons[SCREEN_STR[1]][PLAY_BTN_STR[1]].onClick.AddListener(PauseHome);
+		buttons[SCREEN_STR[1]][PLAY_BTN_STR[2]].onClick.AddListener(PauseResume);
+		buttons[SCREEN_STR[1]][PLAY_BTN_STR[3]].onClick.AddListener(GameManager.Instance.MoveBlockLeft);
+		buttons[SCREEN_STR[1]][PLAY_BTN_STR[4]].onClick.AddListener(GameManager.Instance.MoveBlockRight);
+		buttons[SCREEN_STR[1]][PLAY_BTN_STR[5]].onClick.AddListener(GameManager.Instance.MoveBlockForward);
+		buttons[SCREEN_STR[1]][PLAY_BTN_STR[6]].onClick.AddListener(GameManager.Instance.MoveBlockBackward);
+		buttons[SCREEN_STR[1]][PLAY_BTN_STR[7]].onClick.AddListener(GameManager.Instance.RotateBlockX);
+		buttons[SCREEN_STR[1]][PLAY_BTN_STR[8]].onClick.AddListener(GameManager.Instance.RotateBlockXInv);
+		buttons[SCREEN_STR[1]][PLAY_BTN_STR[9]].onClick.AddListener(GameManager.Instance.RotateBlockY);
+		buttons[SCREEN_STR[1]][PLAY_BTN_STR[10]].onClick.AddListener(GameManager.Instance.RotateBlockYInv);
+		buttons[SCREEN_STR[1]][PLAY_BTN_STR[11]].onClick.AddListener(GameManager.Instance.RotateBlockZ);
+		buttons[SCREEN_STR[1]][PLAY_BTN_STR[12]].onClick.AddListener(GameManager.Instance.RotateBlockZInv);
 
 		playScoreTxt      = GameObject.Find("GameScoreText").GetComponent<TMP_Text>();
 		playScoreTxt.text = "0";
@@ -199,22 +209,22 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 #endif
 
-		screenObjects["PlayScreen"].gameObject.SetActive(false);
+		screenObjects[SCREEN_STR[1]].gameObject.SetActive(false);
 	}
 
 	private void InitOptionScreen()
 	{
-		buttons.Add("OptionButtons", new Dictionary<string, Button>());
+		buttons.Add(SCREEN_STR[2], new Dictionary<string, Button>());
 
 		for (int i = 0; i < OPTION_BTN_STR.Length; ++i)
 		{
-			buttons["OptionButtons"].Add(OPTION_BTN_STR[i], GameObject.Find(OPTION_BTN_STR[i]).GetComponent<Button>());
+			buttons[SCREEN_STR[2]].Add(OPTION_BTN_STR[i], GameObject.Find(OPTION_BTN_STR[i]).GetComponent<Button>());
 		}
 
-		buttons["OptionButtons"]["SoundTab"].onClick.AddListener(() => OptionPanel("SoundTab"));
-		buttons["OptionButtons"]["GraphicTab"].onClick.AddListener(() => OptionPanel("GraphicTab"));
-		buttons["OptionButtons"]["ControlTab"].onClick.AddListener(() => OptionPanel("ControlTab"));
-		buttons["OptionButtons"]["OptionHome"].onClick.AddListener(OptionHome);
+		buttons[SCREEN_STR[2]][OPTION_BTN_STR[0]].onClick.AddListener(() => OptionPanel(OPTION_PANEL.SOUND));
+		buttons[SCREEN_STR[2]][OPTION_BTN_STR[1]].onClick.AddListener(() => OptionPanel(OPTION_PANEL.GRAPHIC));
+		buttons[SCREEN_STR[2]][OPTION_BTN_STR[2]].onClick.AddListener(() => OptionPanel(OPTION_PANEL.CONTROL));
+		buttons[SCREEN_STR[2]][OPTION_BTN_STR[3]].onClick.AddListener(OptionHome);
 		//buttons["OptionButtons"]["ColorToggle"].onClick.AddListener();
 		//buttons["OptionButtons"]["ButtonToggle"].onClick.AddListener();
 		//buttons["OptionButtons"]["ButtonHelp"].onClick.AddListener();
@@ -231,49 +241,56 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		sliderBGM.onValueChanged.AddListener(delegate { OptionSlider(SLIDER_TYPE.BGM); });
 		sliderSFX.onValueChanged.AddListener(delegate { OptionSlider(SLIDER_TYPE.SFX); });
 
-		buttons["OptionButtons"]["GraphicTab"].gameObject.SetActive(false);
-		buttons["OptionButtons"]["ControlTab"].gameObject.SetActive(false);
-		buttons["OptionButtons"]["SoundTab"].gameObject.SetActive(true);
+		buttons[SCREEN_STR[2]][OPTION_BTN_STR[1]].gameObject.SetActive(false);
+		buttons[SCREEN_STR[2]][OPTION_BTN_STR[2]].gameObject.SetActive(false);
+		buttons[SCREEN_STR[2]][OPTION_BTN_STR[0]].gameObject.SetActive(true);
 
-		screenObjects["OptionScreen"].gameObject.SetActive(false);
+		screenObjects[SCREEN_STR[2]].gameObject.SetActive(false);
 	}
 
 	private void InitLeaderBoardScreen()
 	{
-		screens.Add(GameObject.Find("LeaderBoard"));
-		screenCanvases.Add(screens[(int)SCREEN.LEADER_BOARD].GetComponent<CanvasGroup>());
+		buttons.Add(SCREEN_STR[3], new Dictionary<string, Button>());
 
-		//leaderBoard.onClick.AddListener(() => MoveScreen(curMain, curLeader));
-		cloneG     = GameObject.Find("Boards").GetComponent<Image>();
-		leaderBack = GameObject.Find("Leader_Back").GetComponent<Button>();
-		//leaderBack.onClick.AddListener(() => MoveScreen(curLeader, curMain));
+		for (int i = 0; i < LEADER_BOARD_BTN_STR.Length; ++i)
+		{
+			buttons[SCREEN_STR[3]].Add(LEADER_BOARD_BTN_STR[i],
+			                           GameObject.Find(LEADER_BOARD_BTN_STR[i]).GetComponent<Button>());
+		}
 
-		screens[(int)SCREEN.LEADER_BOARD].SetActive(false);
+		leaderBoardContents = GameObject.Find("LeaderBoardContents");
+
+		screenObjects[SCREEN_STR[3]].gameObject.SetActive(false);
 	}
 
 	private void InitGameOverScreen()
 	{
-		screens.Add(GameObject.Find("GameOverScreen"));
-		screenCanvases.Add(screens[(int)SCREEN.GAME_OVER].GetComponent<CanvasGroup>());
+		buttons.Add(SCREEN_STR[4], new Dictionary<string, Button>());
 
-		retryBtn        = GameObject.Find("Retry_Button").GetComponent<Button>();
-		gameOverHomeBtn = GameObject.Find("Home_Button").GetComponent<Button>();
+		for (int i = 0; i < GAME_OVER_BTN_STR.Length; ++i)
+		{
+			buttons[SCREEN_STR[4]].Add(GAME_OVER_BTN_STR[i],
+			                           GameObject.Find(GAME_OVER_BTN_STR[i]).GetComponent<Button>());
+		}
 
-		gameOverScoreText = GameObject.Find("GameOver_Score").GetComponent<TMP_Text>();
+		gameOverScoreTxt      = GameObject.Find("GameOverScore").GetComponent<TMP_Text>();
+		gameOverScoreTxt.text = "00000000";
 
-		retryBtn.onClick.AddListener(InitPlayScreen);
-
-		screens[(int)SCREEN.GAME_OVER].SetActive(false);
+		screenObjects[SCREEN_STR[4]].gameObject.SetActive(false);
 	}
 
 #region Main Functions
 
 	private IEnumerator GameStart()
 	{
-		yield return StartCoroutine(FadeOutIn(screenObjects["MainScreen"],
-		                                      screenObjects["PlayScreen"], 1f));
+		yield return StartCoroutine(FadeOutIn("MainScreen", "PlayScreen", 1f));
 
 		StartCoroutine(GameManager.Instance.GameStart());
+	}
+
+	private IEnumerator MainOption()
+	{
+		yield return StartCoroutine(FadeOutIn("MainScreen", "OptionScreen", 3f));
 	}
 
 #endregion
@@ -282,34 +299,33 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 	private void GamePause()
 	{
-		playControlScreen.SetActive(false);
-		playPauseScreen.SetActive(true);
+		playObjects["ControlScreen"].SetActive(false);
+		playObjects["PauseScreen"].SetActive(true);
 
-		GameManager.instance.GamePause();
+		GameManager.Instance.GamePause();
 	}
 
-	private void GameResume()
+	private void PauseResume()
 	{
-		playPauseScreen.SetActive(false);
-		playControlScreen.SetActive(true);
+		playObjects["PauseScreen"].SetActive(false);
+		playObjects["ControlScreen"].SetActive(true);
 
-		GameManager.instance.GameResume();
+		GameManager.Instance.GameResume();
 	}
 
 	private void PauseHome()
 	{
-		pauseHomeBtn.interactable = false;
-		StartCoroutine(FadeOutIn(screenPlay, screenMain, 1f));
-		pauseHomeBtn.interactable = true;
-		playPauseScreen.SetActive(false);
-		playControlScreen.SetActive(true);
-		screenPlay.gameObject.SetActive(false);
-
-		StartCoroutine(GameManager.instance.GameHome());
+		StartCoroutine(FadeOutIn("PlayScreen", "MainScreen", 1f));
+		StartCoroutine(GameManager.Instance.GameHome());
 	}
 
 	private void UIReplayOnClick()
 	{
+	}
+
+	public void ScoreUpdate(int score)
+	{
+		playScoreTxt.text = score.ToString("D8");
 	}
 
 #endregion
@@ -318,18 +334,19 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 	private void OptionHome()
 	{
-		StartCoroutine(FadeOutIn(screenObjects["OptionScreen"].canvas,
-		                         screenObjects["MainScreen"].canvas, 0.5f));
+		StartCoroutine(FadeOutIn("OptionScreen", "MainScreen", 3f));
 	}
 
-	private void OptionPanel(string tab)
+	private void OptionPanel(OPTION_PANEL panel)
 	{
-		foreach (KeyValuePair<string, Button> panel in optionPanels)
+		if (curPanel == panel) return;
+		
+		for (int i = 0; i < 3; ++i)
 		{
-			panel.Value.gameObject.SetActive(false);
+			buttons["OptionScreen"][OPTION_BTN_STR[i]].gameObject.SetActive(false);
 		}
 
-		optionPanels[tab].gameObject.SetActive(true);
+		buttons["OptionScreen"][OPTION_BTN_STR[(int)panel]].gameObject.SetActive(true);
 	}
 
 	private void OptionSlider(SLIDER_TYPE type)
@@ -350,45 +367,86 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 #endregion
 
+#region Leader Board Functions
+
+	private void AddBoard(string user, int score)
+	{
+		GameObject board = Resources.Load<GameObject>(LEADER_BOARD_ASSET);
+		board.transform.parent                                    = leaderBoardContents.transform;
+		board.transform.GetChild(1).GetComponent<TMP_Text>().text = user;
+		board.transform.GetChild(2).GetComponent<TMP_Text>().text = score.ToString();
+
+		bool isBetween = false;
+
+		for (int i = 0; i < leaderBoardContents.transform.childCount; ++i)
+		{
+			string originScore = leaderBoardContents.transform.GetChild(i).GetChild(2).GetComponent<TMP_Text>().text;
+
+			if (score <= int.Parse(originScore)) continue;
+
+			board.transform.parent = leaderBoardContents.transform;
+			board.transform.SetSiblingIndex(i);
+			isBetween = true;
+
+			break;
+		}
+
+		if (!isBetween)
+		{
+			board.transform.parent = leaderBoardContents.transform;
+		}
+	}
+
+#endregion
+
+#region Game Over Functions
+
+	public void PrintScore(int score)
+	{
+		gameOverScoreTxt.text = score.ToString("D8");
+	}
+
+#endregion
+
 #region General Functions
 
-	private IEnumerator FadeOutIn((string, CanvasGroup) fadeOut, (string, CanvasGroup) fadeIn, float acc)
+	public IEnumerator FadeOutIn(string fadeOut, string fadeIn, float acc)
 	{
 		const float alphaUnit = 0.02f;
 		float       alphaSet  = 1f;
 
 	#region Fade Out
 
-		foreach (KeyValuePair<string, Button> button in buttons[fadeOut.Item1])
+		foreach (KeyValuePair<string, Button> button in buttons[fadeOut])
 		{
 			button.Value.interactable = false;
 		}
 
 		while (alphaSet >= 0f)
 		{
-			alphaSet            -= alphaUnit * acc;
-			fadeOut.Item2.alpha =  alphaSet;
+			alphaSet                     -= alphaUnit * acc;
+			screenObjects[fadeOut].alpha =  alphaSet;
 
 			yield return new WaitForSeconds(0.01f);
 		}
 
-		fadeOut.Item2.alpha = 0f;
+		screenObjects[fadeOut].alpha = 0f;
 
-		foreach (KeyValuePair<string, Button> button in buttons[fadeOut.Item1])
+		foreach (KeyValuePair<string, Button> button in buttons[fadeOut])
 		{
 			button.Value.interactable = true;
 		}
 
-		fadeOut.Item2.gameObject.SetActive(false);
+		screenObjects[fadeOut].gameObject.SetActive(false);
 
 	#endregion
 
 	#region Fade In
 
-		fadeIn.Item2.gameObject.SetActive(true);
-		fadeIn.Item2.alpha = 0f;
+		screenObjects[fadeIn].gameObject.SetActive(true);
+		screenObjects[fadeIn].alpha = 0f;
 
-		foreach (KeyValuePair<string, Button> button in buttons[fadeIn.Item1])
+		foreach (KeyValuePair<string, Button> button in buttons[fadeIn])
 		{
 			button.Value.interactable = false;
 		}
@@ -397,15 +455,15 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 		while (alphaSet <= 1f)
 		{
-			alphaSet           += alphaUnit * acc;
-			fadeIn.Item2.alpha =  alphaSet;
+			alphaSet                    += alphaUnit * acc;
+			screenObjects[fadeIn].alpha =  alphaSet;
 
 			yield return new WaitForSeconds(0.01f);
 		}
 
-		fadeIn.Item2.alpha = 1f;
+		screenObjects[fadeIn].alpha = 1f;
 
-		foreach (KeyValuePair<string, Button> button in buttons[fadeIn.Item1])
+		foreach (KeyValuePair<string, Button> button in buttons[fadeIn])
 		{
 			button.Value.interactable = true;
 		}

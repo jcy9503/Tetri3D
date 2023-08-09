@@ -21,12 +21,11 @@ public sealed class InputSystem : MonoSingleton<InputSystem>
 		ESC
 	}
 
-	private         Vector2      clickPos;
-	private         List<bool>   keyUsing;
-	private         List<float>  keyIntervals;
-	private const   float        defaultKeyInterval = 0.2f;
-	private         CameraSystem systemCamera;
-	public delegate void         LogicFunc();
+	private         Vector2     clickPos;
+	private         List<bool>  keyUsing;
+	private         List<float> keyIntervals;
+	public const    float       defaultKeyInterval = 0.2f;
+	public delegate void        LogicFunc();
 
 	public InputSystem()
 	{
@@ -51,32 +50,30 @@ public sealed class InputSystem : MonoSingleton<InputSystem>
 			defaultKeyInterval, defaultKeyInterval, 0.1f,
 			2f,
 		};
-
-		systemCamera = GameManager.systemCamera;
 	}
 
 	public GameManager.INPUT_CONTROL InputWindows()
 	{
 	#region ScreenControl
 
-		if (Input.GetKey(KeyCode.UpArrow) && !systemCamera.isShaking)
+		if (Input.GetKey(KeyCode.UpArrow) && !CameraSystem.isShaking)
 		{
-			systemCamera.RotateHorizontal(false);
+			CameraSystem.RotateHorizontal(false);
 		}
 
-		if (Input.GetKey(KeyCode.DownArrow) && !systemCamera.isShaking)
+		if (Input.GetKey(KeyCode.DownArrow) && !CameraSystem.isShaking)
 		{
-			systemCamera.RotateHorizontal(true);
+			CameraSystem.RotateHorizontal(true);
 		}
 
-		if (Input.GetKey(KeyCode.LeftArrow) && !systemCamera.isShaking)
+		if (Input.GetKey(KeyCode.LeftArrow) && !CameraSystem.isShaking)
 		{
-			systemCamera.RotateVertical(false);
+			CameraSystem.RotateVertical(false);
 		}
 
-		if (Input.GetKey(KeyCode.RightArrow) && !systemCamera.isShaking)
+		if (Input.GetKey(KeyCode.RightArrow) && !CameraSystem.isShaking)
 		{
-			systemCamera.RotateVertical(true);
+			CameraSystem.RotateVertical(true);
 		}
 
 	#endregion
@@ -87,7 +84,7 @@ public sealed class InputSystem : MonoSingleton<InputSystem>
 		{
 			keyUsing[(int)KEY_VALUE.LEFT] = true;
 			StartCoroutine(KeyRewind((int)KEY_VALUE.LEFT));
-			
+
 			return GameManager.INPUT_CONTROL.MOVE_LEFT;
 		}
 
@@ -179,7 +176,7 @@ public sealed class InputSystem : MonoSingleton<InputSystem>
 
 			return GameManager.INPUT_CONTROL.BLOCK_DOWN;
 		}
-		
+
 		if (Input.GetKey(KeyCode.LeftShift) && GameManager.canSave)
 		{
 			return GameManager.INPUT_CONTROL.BLOCK_SAVE;
@@ -212,19 +209,19 @@ public sealed class InputSystem : MonoSingleton<InputSystem>
 		{
 			Vector2 angle = new(-Input.GetAxis("Mouse Y"), Input.GetAxis("Mouse X"));
 
-			clickPos += angle;
-			Dir      =  Mathf.Abs(clickPos.x) > Mathf.Abs(clickPos.y);
+			clickPos         += angle;
+			CameraSystem.Dir =  Mathf.Abs(clickPos.x) > Mathf.Abs(clickPos.y);
 
-			if (checkDir)
+			if (CameraSystem.checkDir)
 			{
-				rotatorTr.rotation = mementoRotation;
-				checkDir           = false;
-				clickPos           = Vector2.zero;
+				CameraSystem.rotatorTr.rotation = CameraSystem.mementoRotation;
+				CameraSystem.checkDir           = false;
+				clickPos                        = Vector2.zero;
 			}
 
-			Quaternion target = rotatorTr.rotation;
+			Quaternion target = CameraSystem.rotatorTr.rotation;
 
-			if (Dir)
+			if (CameraSystem.Dir)
 			{
 				target *= Quaternion.AngleAxis(angle.x, Vector3.right);
 			}
@@ -235,16 +232,16 @@ public sealed class InputSystem : MonoSingleton<InputSystem>
 
 			float angleX = target.eulerAngles.x;
 			angleX = angleX > 180 ? angleX - 360 : angleX;
-			target.eulerAngles = new Vector3(Mathf.Clamp(angleX, -cameraRotationConstraintX,
-			                                             cameraRotationConstraintX),
+			target.eulerAngles = new Vector3(Mathf.Clamp(angleX, -CameraSystem.rotationConstraintX,
+			                                             CameraSystem.rotationConstraintX),
 			                                 target.eulerAngles.y, 0f);
-			rotatorTr.rotation = Quaternion.RotateTowards(rotatorTr.rotation, target,
-			                                              cameraSpeed * Time.deltaTime);
+			CameraSystem.rotatorTr.rotation = Quaternion.RotateTowards(CameraSystem.rotatorTr.rotation, target,
+			                                                           CameraSystem.cameraSpeed * Time.deltaTime);
 		}
 
-		if (Input.GetMouseButtonUp(0) && !isCameraShaking)
+		if (Input.GetMouseButtonUp(0) && !CameraSystem.isShaking)
 		{
-			mementoRotation = rotatorTr.rotation;
+			CameraSystem.mementoRotation = CameraSystem.rotatorTr.rotation;
 		}
 	}
 
