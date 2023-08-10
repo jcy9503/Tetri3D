@@ -5,10 +5,12 @@
  * Contains rendering related class.
  */
 
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.VFX;
+using Object = UnityEngine.Object;
 
 /// <summary>
 /// line mesh rendering using LineRenderer
@@ -236,7 +238,7 @@ public class CubeMesh
 
 		MRenderer.material = new Material(Resources.Load<Material>(materialPath));
 
-		MFilter.mesh.RecalculateNormals();
+		MFilter.sharedMesh.RecalculateNormals();
 	}
 }
 
@@ -277,8 +279,8 @@ public class ParticleRender
 
 public sealed class RenderSystem : MonoSingleton<RenderSystem>
 {
-	public static           GameObject       blockObj;
-	public static           GameObject       shadowObj;
+	private static          GameObject       blockObj;
+	private static          GameObject       shadowObj;
 	public static           GameObject       gridObj;
 	private static          List<PrefabMesh> blockMeshList;
 	private static          List<PrefabMesh> shadowMeshList;
@@ -294,25 +296,18 @@ public sealed class RenderSystem : MonoSingleton<RenderSystem>
 
 	protected override void Init()
 	{
-		gridObj   = GameObject.Find("Grid");
-		blockObj  = GameObject.Find("Blocks");
-		shadowObj = GameObject.Find("Shadow");
-
-		startOffset = new Vector3(-GameManager.grid.SizeX / 2f + GameManager.blockSize / 2,
-		                          GameManager.grid.SizeY  / 2f - GameManager.blockSize / 2,
-		                          -GameManager.grid.SizeZ / 2f + GameManager.blockSize / 2);
-
 		blockMeshList  = new List<PrefabMesh>();
 		shadowMeshList = new List<PrefabMesh>();
 		gridMeshList   = new List<PrefabMesh>();
 		lineMeshList   = new List<LineMesh>();
-		RenderLine();
-
-		RenderCurrentBlock();
-		RenderShadowBlock();
-
-		if (GameManager.testGrid) RenderGrid();
 	}
+
+	private void Start()
+	{
+		gridObj   = GameObject.Find("Grid");
+		blockObj  = GameObject.Find("Blocks");
+		shadowObj = GameObject.Find("Shadow");
+    }
 
 	public static void RenderLine()
 	{
@@ -415,7 +410,7 @@ public sealed class RenderSystem : MonoSingleton<RenderSystem>
 		lineMeshList.Add(mesh12);
 	}
 
-	public void RenderCurrentBlock()
+	public static void RenderCurrentBlock()
 	{
 		ClearCurrentBlock();
 
@@ -430,7 +425,7 @@ public sealed class RenderSystem : MonoSingleton<RenderSystem>
 		}
 	}
 
-	private void RenderShadowBlock()
+	public static void RenderShadowBlock()
 	{
 		ClearShadowBlock();
 		GameManager.shadowBlock = GameManager.currentBlock.CopyBlock();

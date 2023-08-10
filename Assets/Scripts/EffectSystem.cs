@@ -1,18 +1,21 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Random = UnityEngine.Random;
 
 public sealed class EffectSystem : MonoSingleton<EffectSystem>
 {
-	public static           GameObject       effectObj;
+	private static          GameObject       effectObj;
 	private static          GameGrid         grid;
 	private static          List<LineMesh>   lineMeshes;
 	private static          List<PrefabMesh> gridMeshes;
+	private                 ParticleRender   rotationParticle;
 	private const           string           vfxRotation = "Prefabs/VFX_Rotation";
 	private const           string           vfxDrop     = "Prefabs/VFX_Drop";
-	public static          float            lineGlowPower;
+	public static           float            lineGlowPower;
 	private static readonly int              alpha      = Shader.PropertyToID("_Alpha");
 	private static readonly int              clear      = Shader.PropertyToID("_Clear");
 	private static readonly int              emission   = Shader.PropertyToID("_Emission");
@@ -28,16 +31,21 @@ public sealed class EffectSystem : MonoSingleton<EffectSystem>
 
 	protected override void Init()
 	{
-		effectObj  = GameObject.Find("Effect");
-		grid       = GameManager.grid;
-		lineMeshes = RenderSystem.lineMeshList;
-		gridMeshes = RenderSystem.gridMeshList;
-        
-		lineGlowPower = lineMeshes[0].Renderer.material.GetFloat(power);
-
+		rotationParticle = null;
 	}
 
-	private void DropEffect()
+	private void Start()
+	{
+		grid = GameManager.grid;
+		
+		lineMeshes = RenderSystem.lineMeshList;
+		gridMeshes = RenderSystem.gridMeshList;
+		
+		effectObj     = GameObject.Find("Effect");
+		lineGlowPower = lineMeshes[0].Renderer.material.GetFloat(power);
+	}
+
+	public static void DropEffect()
 	{
 		int yMax = GameManager.currentBlock.Tile.Select(coord => coord.Y).Prepend(-1).Max();
 
@@ -213,5 +221,19 @@ public sealed class EffectSystem : MonoSingleton<EffectSystem>
 		{
 			Destroy(mesh.Obj);
 		}
+	}
+
+	public void MoveRotationEffect()
+	{
+		if (rotationParticle != null)
+			rotationParticle.Obj.transform.position -= Vector3.up;
+	}
+
+	public void CreateRotationEffect(ref Vector3 offset, ref Quaternion rotation)
+	{
+		rotationParticle = new ParticleRender(vfxRotation, offset, effectObj, rotation);
+
+		Destroy(rotationParticle!.Obj, 0.3f);
+		rotationParticle = null;
 	}
 }

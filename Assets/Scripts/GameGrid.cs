@@ -67,7 +67,6 @@ public class GameGrid
 
 		Mesh = new CubeMesh("GridMesh", SizeX, SizeY, SizeZ, unit, true,
 		                    "Materials/Grid", false, null);
-		Mesh.Obj.transform.parent = RenderSystem.gridObj.transform;
 	}
 
 	private void SetGrid(int x, int y, int z, float gridUnit)

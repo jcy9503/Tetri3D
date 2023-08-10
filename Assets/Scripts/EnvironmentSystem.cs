@@ -1,6 +1,8 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public sealed class EnvironmentSystem : MonoSingleton<EnvironmentSystem>
 {
@@ -19,23 +21,21 @@ public sealed class EnvironmentSystem : MonoSingleton<EnvironmentSystem>
 		Init();
 	}
 
-	protected override void Init()
+	private void Start()
 	{
 		cubeMeshes    = GameObject.Find("Meshes");
-		cubeTrs       = new List<Transform>();
 		cubeAnimators = cubeMeshes.GetComponentsInChildren<Animator>();
 		cubeRenderers = cubeMeshes.GetComponentsInChildren<Renderer>();
-		cubesFloating = new List<bool>();
-
+		
 		Transform[] trs = cubeMeshes.GetComponentsInChildren<Transform>();
-
+		
 		foreach (Transform tr in trs)
 		{
 			if (tr.parent != cubeMeshes.transform) continue;
 
 			cubeTrs.Add(tr);
 		}
-
+		
 		foreach (Transform tr in cubeTrs)
 		{
 			float randFloat = Random.Range(0f, 360f);
@@ -46,7 +46,7 @@ public sealed class EnvironmentSystem : MonoSingleton<EnvironmentSystem>
 
 			tr.localScale = Vector3.one * randFloat;
 		}
-
+		
 		foreach (Animator animator in cubeAnimators)
 		{
 			float randFloat = Random.Range(0.3f, 1f);
@@ -66,7 +66,7 @@ public sealed class EnvironmentSystem : MonoSingleton<EnvironmentSystem>
 				cubesFloating.Add(false);
 			}
 		}
-
+		
 		foreach (Renderer rd in cubeRenderers)
 		{
 			rd.material.SetFloat(speed, Random.Range(0.15f, 0.45f));
@@ -75,12 +75,18 @@ public sealed class EnvironmentSystem : MonoSingleton<EnvironmentSystem>
 		animFunc = StartCoroutine(AnimChange());
 	}
 
+	protected override void Init()
+	{
+		cubeTrs       = new List<Transform>();
+		cubesFloating = new List<bool>();
+	}
+
 	private IEnumerator AnimChange()
 	{
 		while (true)
 		{
 			if (GameManager.isGameOver) break;
-			
+
 			int randObj = Random.Range(0, cubeAnimators.Length);
 			int randInt = Random.Range(0, totalAnim);
 

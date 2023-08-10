@@ -1,11 +1,12 @@
+using System;
 using System.Collections;
 using UnityEngine;
-using UnityEngine.Serialization;
+using Random = UnityEngine.Random;
 
 public sealed class CameraSystem : MonoSingleton<CameraSystem>
 {
 	public static    GameObject mainCameraObj;
-	public static    Camera     mainCamera;
+	private static   Camera     mainCamera;
 	public static    Transform  rotatorTr;
 	public static    Quaternion mementoRotation;
 	private readonly Quaternion initRotation        = Quaternion.Euler(15f, 0f, 0f);
@@ -35,12 +36,17 @@ public sealed class CameraSystem : MonoSingleton<CameraSystem>
 		Init();
 	}
 
-	protected override void Init()
+	private void Start()
 	{
 		mainCameraObj                     = GameObject.Find("Main Camera");
 		mainCameraObj!.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
-		mainCamera                        = mainCameraObj.GetComponent<Camera>();
-		rotatorTr                         = GameObject.Find("Rotator").GetComponent<Transform>();
+
+		mainCamera    = mainCameraObj.GetComponent<Camera>();
+		rotatorTr     = GameObject.Find("Rotator").GetComponent<Transform>();
+	}
+
+	protected override void Init()
+	{
 		mementoRotation                   = Quaternion.identity;
 		Dir                               = false;
 		checkDir                          = false;
@@ -94,7 +100,7 @@ public sealed class CameraSystem : MonoSingleton<CameraSystem>
 		}
 	}
 
-	private IEnumerator Shake()
+	public IEnumerator Shake()
 	{
 		isShaking = true;
 		float timer = 0;
@@ -128,7 +134,7 @@ public sealed class CameraSystem : MonoSingleton<CameraSystem>
 		mainCamera.transform.rotation = initRotation;
 	}
 
-	public IEnumerator MainMenu()
+	public static IEnumerator MainMenu()
 	{
 		float pastTime = 0f;
 
@@ -146,14 +152,14 @@ public sealed class CameraSystem : MonoSingleton<CameraSystem>
 		mainCamera.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
 	}
 
-	private void RotatorPositionClear()
+	private static void RotatorPositionClear()
 	{
 		rotatorTr.position = Vector3.zero;
 
 		isShaking = false;
 	}
 
-	public IEnumerator CameraFOVEffect()
+	public static IEnumerator CameraFOVEffect()
 	{
 		const float target      = 120f;
 		float       originFOV   = mainCamera.fieldOfView;
@@ -173,8 +179,8 @@ public sealed class CameraSystem : MonoSingleton<CameraSystem>
 
 		while (mainCamera.fieldOfView > originFOV + 1f)
 		{
-			mainCamera.fieldOfView =  Mathf.Lerp(mainCamera.fieldOfView, originFOV, 0.2f);
-			AudioSystem.audioSourceBGM.pitch   += 0.02f;
+			mainCamera.fieldOfView           =  Mathf.Lerp(mainCamera.fieldOfView, originFOV, 0.2f);
+			AudioSystem.audioSourceBGM.pitch += 0.02f;
 
 			yield return new WaitForSeconds(0.01f);
 		}

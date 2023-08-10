@@ -1,6 +1,8 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public sealed class AudioSystem : MonoSingleton<AudioSystem>
 {
@@ -72,13 +74,13 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 		"SFX/Tetris2",
 		"SFX/Resume",
 	};
-	public static AudioSource     audioSourceBGM;
-	public static AudioSource[]   audioSourcesSFX;
+	public static  AudioSource     audioSourceBGM;
+	private static AudioSource[]   audioSourcesSFX;
 	private static List<AudioClip> bgmSource;
 	private static List<AudioClip> sfxSource;
 	private static int             sfxIdx;
 	private static float           bgmVolume = 0.2f;
-	public float BGMVolume
+	public static float BGMVolume
 	{
 		get => bgmVolume;
 		set
@@ -112,28 +114,33 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 
 	protected override void Init()
 	{
-		audioSourceBGM             = CameraSystem.mainCameraObj.AddComponent<AudioSource>();
+		bgmSource = new List<AudioClip>();
+
+		sfxIdx = -1;
+
+		sfxSource = new List<AudioClip>();
+	}
+
+	private void Start()
+	{
+		audioSourceBGM  = CameraSystem.mainCameraObj.AddComponent<AudioSource>();
+		audioSourcesSFX = RenderSystem.gridObj.GetComponentsInChildren<AudioSource>();
+
 		audioSourceBGM.playOnAwake = true;
 		audioSourceBGM.loop        = false;
 		audioSourceBGM.volume      = bgmVolume;
-		bgmSource                  = new List<AudioClip>();
-
+		
 		foreach (string path in BGM_PATH)
 		{
 			bgmSource.Add(Resources.Load<AudioClip>(path));
 		}
-
-		mainBGM = StartCoroutine(PlayMainBGM());
-
-		audioSourcesSFX = RenderSystem.gridObj.GetComponentsInChildren<AudioSource>();
-		sfxIdx          = -1;
-
-		sfxSource = new List<AudioClip>();
-
+		
 		foreach (string path in SFX_PATH)
 		{
 			sfxSource.Add(Resources.Load<AudioClip>(path));
 		}
+
+		mainBGM = StartCoroutine(PlayMainBGM());
 	}
 
 	private IEnumerator PlayMainBGM()
@@ -146,6 +153,7 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 		while (true)
 		{
 			if (GameManager.isGameOver) break;
+
 			if (!audioSourceBGM.isPlaying)
 				audioSourceBGM.Play();
 

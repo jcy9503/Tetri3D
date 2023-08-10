@@ -24,27 +24,26 @@ public sealed class GameManager : MonoSingleton<GameManager>
 	// Score
 	private const    int   baseScore  = 100;
 	private readonly int[] scoreValue = { 1, 2, 4, 8 };
-	private static   int   comboIdx   = 0;
+	private static   int   comboIdx;
 	private static   int   totalScore;
 
 	// Test
-	public static bool             testGrid;
-	public static bool             gridRegen;
-	public static bool             testBlock;
-	public static int              testHeight;
-	public static int              testFieldSize;
-	public        Block.BLOCK_TYPE testBlockType;
+	public static  bool             testGrid;
+	public static  bool             gridRegen;
+	public static  bool             testBlock;
+	public static  int              testHeight;
+	private static int              testFieldSize;
+	public         Block.BLOCK_TYPE testBlockType;
 
 	// Grid / Blocks
-	public static  GameGrid       grid;
-	private static BlockQueue     BlockQueue { get; set; }
-	public static  Block          currentBlock;
-	public static  Block          shadowBlock;
-	public static  Block          saveBlock;
-	public static  bool           canSave;
-	public const   float          blockSize    = 1.0f;
-	private const  float          downInterval = 1.0f;
-	public         ParticleRender rotationParticle;
+	public static  GameGrid   grid;
+	private static BlockQueue BlockQueue { get; set; }
+	public static  Block      currentBlock;
+	public static  Block      shadowBlock;
+	public static  Block      saveBlock;
+	public static  bool       canSave;
+	public const   float      blockSize    = 1.0f;
+	private const  float      downInterval = 1.0f;
 
 	public enum INPUT_CONTROL
 	{
@@ -69,9 +68,33 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 #region MonoFunction
 
-	private void Start()
+	public GameManager()
 	{
 		Init();
+	}
+
+	private void Start()
+	{
+#if UNITY_EDITOR
+		grid = new GameGrid(ref gridSize, blockSize);
+
+#else
+		grid = new GameGrid(ref gridSize, blockSize);
+
+#endif
+		grid.Mesh.Obj.transform.parent = RenderSystem.gridObj.transform;
+
+		BlockQueue   = new BlockQueue();
+		currentBlock = BlockQueue.GetAndUpdateBlock();
+
+		RenderSystem.startOffset = new Vector3(-grid.SizeX / 2f + blockSize / 2,
+		                                       grid.SizeY  / 2f - blockSize / 2,
+		                                       -grid.SizeZ / 2f + blockSize / 2);
+		if (testGrid) RenderSystem.Instance.RenderGrid();
+		
+		RenderSystem.RenderLine();
+		RenderSystem.RenderCurrentBlock();
+		RenderSystem.RenderShadowBlock();
 	}
 
 	protected override void Init()
@@ -85,30 +108,21 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		testBlockType = Block.BLOCK_TYPE.I;
 
 #if UNITY_EDITOR
-
 		testGrid  = true;
 		gridRegen = true;
 		testBlock = true;
 
 		gridSize[0] = testFieldSize;
 		gridSize[2] = testFieldSize;
-		grid        = new GameGrid(ref gridSize, blockSize);
 
 #else
 		testGrid = false;
 		gridRegen = false;
 		testBlock = false;
-		
-        grid = new GameGrid(ref gridSize, blockSize);
 
 #endif
 
-		BlockQueue   = new BlockQueue();
-		currentBlock = BlockQueue.GetAndUpdateBlock();
-		canSave      = true;
-		
-		rotationParticle = null;
-
+		canSave = true;
 	}
 
 	private void Update()
@@ -244,7 +258,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 	{
 		AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.CLICK);
 
-		yield return StartCoroutine(CameraSystem.Instance.MainMenu());
+		yield return StartCoroutine(CameraSystem.MainMenu());
 
 		isPause = true;
 
@@ -303,7 +317,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 	{
 		while (true)
 		{
-			RenderSystem.Instance.RenderCurrentBlock();
+			RenderSystem.RenderCurrentBlock();
 
 			if (!grid.IsPlaneEmpty(0))
 			{
@@ -314,8 +328,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 			MoveBlockDown();
 
-			if (rotationParticle != null)
-				rotationParticle.Obj.transform.position -= Vector3.up;
+			EffectSystem.Instance.MoveRotationEffect();
 
 			yield return new WaitForSeconds(downInterval);
 		}
@@ -358,7 +371,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.TETRIS1);
 			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.TETRIS2);
 
-			StartCoroutine(CameraSystem.Instance.CameraFOVEffect());
+			StartCoroutine(CameraSystem.CameraFOVEffect());
 		}
 		else if (cleared.Count > 0)
 		{
@@ -464,48 +477,46 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		{
 			AudioSystem.Instance.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
-			Vector3 offset = RenderSystem.startOffset + currentBlock.Pos.ToVector() + new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
-			                 new Vector3(1f, -1f, 1f) * (currentBlock.Size * blockSize * 0.5f);
+			Vector3 offset = RenderSystem.startOffset                    + currentBlock.Pos.ToVector() +
+			                 new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
+			                 new Vector3(1f,    -1f,  1f)    * (currentBlock.Size * blockSize * 0.5f);
 
 			Quaternion rotation;
 
 			switch (CameraSystem.viewAngle)
 			{
 				case 0:
-					rotation         = Quaternion.Euler(0f, 0f, 90f);
-					rotationParticle = new ParticleRender(vfxRotation, offset, rotation);
+					rotation = Quaternion.Euler(0f, 0f, 90f);
+					EffectSystem.Instance.CreateRotationEffect(ref offset, ref rotation);
 
 					break;
 
 				case 1:
-					rotation         = Quaternion.Euler(90f, 0f, 0f);
-					rotationParticle = new ParticleRender(vfxRotation, offset, rotation);
+					rotation = Quaternion.Euler(90f, 0f, 0f);
+					EffectSystem.Instance.CreateRotationEffect(ref offset, ref rotation);
 
 					break;
 
 				case 2:
-					rotation         = Quaternion.Euler(0f, 0f, -90f);
-					rotationParticle = new ParticleRender(vfxRotation, offset, rotation);
+					rotation = Quaternion.Euler(0f, 0f, -90f);
+					EffectSystem.Instance.CreateRotationEffect(ref offset, ref rotation);
 
 					break;
 
 				case 3:
-					rotation         = Quaternion.Euler(-90f, 0f, 0f);
-					rotationParticle = new ParticleRender(vfxRotation, offset, rotation);
+					rotation = Quaternion.Euler(-90f, 0f, 0f);
+					EffectSystem.Instance.CreateRotationEffect(ref offset, ref rotation);
 
 					break;
 			}
 
-			Destroy(rotationParticle!.Obj, 0.3f);
-			rotationParticle = null;
-
-			RefreshCurrentBlock();
+			RenderSystem.Instance.RefreshCurrentBlock();
 		}
 	}
 
 	public void RotateBlockXInv()
 	{
-		switch (viewAngle)
+		switch (CameraSystem.viewAngle)
 		{
 			case 0:
 				currentBlock.RotateXCounterClockWise();
@@ -530,9 +541,9 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
+			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
-			switch (viewAngle)
+			switch (CameraSystem.viewAngle)
 			{
 				case 0:
 					currentBlock.RotateXClockWise();
@@ -557,44 +568,42 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		}
 		else
 		{
-			PlayRandomSfx(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
+			AudioSystem.Instance.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
-			Vector3 offset = StartOffset + currentBlock.Pos.ToVector() + new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
-			                 new Vector3(1f, -1f, 1f) * (currentBlock.Size * blockSize * 0.5f);
+			Vector3 offset = RenderSystem.startOffset                    + currentBlock.Pos.ToVector() +
+			                 new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
+			                 new Vector3(1f,    -1f,  1f)    * (currentBlock.Size * blockSize * 0.5f);
 
 			Quaternion rotation;
 
-			switch (viewAngle)
+			switch (CameraSystem.viewAngle)
 			{
 				case 0:
-					rotation         = Quaternion.Euler(0f, 0f, -90f);
-					rotationParticle = new ParticleRender(vfxRotation, offset, rotation);
+					rotation = Quaternion.Euler(0f, 0f, -90f);
+					EffectSystem.Instance.CreateRotationEffect(ref offset, ref rotation);
 
 					break;
 
 				case 1:
-					rotation         = Quaternion.Euler(-90f, 0f, 0f);
-					rotationParticle = new ParticleRender(vfxRotation, offset, rotation);
+					rotation = Quaternion.Euler(-90f, 0f, 0f);
+					EffectSystem.Instance.CreateRotationEffect(ref offset, ref rotation);
 
 					break;
 
 				case 2:
-					rotation         = Quaternion.Euler(0f, 0f, 90f);
-					rotationParticle = new ParticleRender(vfxRotation, offset, rotation);
+					rotation = Quaternion.Euler(0f, 0f, 90f);
+					EffectSystem.Instance.CreateRotationEffect(ref offset, ref rotation);
 
 					break;
 
 				case 3:
-					rotation         = Quaternion.Euler(90f, 0f, 0f);
-					rotationParticle = new ParticleRender(vfxRotation, offset, rotation);
+					rotation = Quaternion.Euler(90f, 0f, 0f);
+					EffectSystem.Instance.CreateRotationEffect(ref offset, ref rotation);
 
 					break;
 			}
 
-			Destroy(rotationParticle!.Obj, 0.3f);
-			rotationParticle = null;
-
-			RefreshCurrentBlock();
+			RenderSystem.Instance.RefreshCurrentBlock();
 		}
 	}
 
@@ -604,33 +613,31 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
+			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
 			currentBlock.RotateYCounterClockWise();
 		}
 		else
 		{
-			PlayRandomSfx(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
+			AudioSystem.Instance.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
-			Vector3 offset = StartOffset + currentBlock.Pos.ToVector() + new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
-			                 new Vector3(1f, -1f, 1f) * (currentBlock.Size * blockSize * 0.5f);
+			Vector3 offset = RenderSystem.startOffset                    + currentBlock.Pos.ToVector() +
+			                 new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
+			                 new Vector3(1f,    -1f,  1f)    * (currentBlock.Size * blockSize * 0.5f);
 			Quaternion rotation = Quaternion.Euler(0f, 0f, 180f);
 
-			switch (viewAngle)
+			switch (CameraSystem.viewAngle)
 			{
 				case 0:
 				case 1:
 				case 2:
 				case 3:
-					rotationParticle = new ParticleRender(vfxRotation, offset, rotation);
+					EffectSystem.Instance.CreateRotationEffect(ref offset, ref rotation);
 
 					break;
 			}
 
-			Destroy(rotationParticle!.Obj, 0.3f);
-			rotationParticle = null;
-
-			RefreshCurrentBlock();
+			RenderSystem.Instance.RefreshCurrentBlock();
 		}
 	}
 
@@ -640,39 +647,37 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
+			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
 			currentBlock.RotateYClockWise();
 		}
 		else
 		{
-			PlayRandomSfx(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
+			AudioSystem.Instance.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
-			Vector3 offset = StartOffset + currentBlock.Pos.ToVector() + new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
-			                 new Vector3(1f, -1f, 1f) * (currentBlock.Size * blockSize * 0.5f);
+			Vector3 offset = RenderSystem.startOffset                    + currentBlock.Pos.ToVector() +
+			                 new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
+			                 new Vector3(1f,    -1f,  1f)    * (currentBlock.Size * blockSize * 0.5f);
 			Quaternion rotation = Quaternion.identity;
 
-			switch (viewAngle)
+			switch (CameraSystem.viewAngle)
 			{
 				case 0:
 				case 1:
 				case 2:
 				case 3:
-					rotationParticle = new ParticleRender(vfxRotation, offset, rotation);
+					EffectSystem.Instance.CreateRotationEffect(ref offset, ref rotation);
 
 					break;
 			}
 
-			Destroy(rotationParticle!.Obj, 0.3f);
-			rotationParticle = null;
-
-			RefreshCurrentBlock();
+			RenderSystem.Instance.RefreshCurrentBlock();
 		}
 	}
 
 	public void RotateBlockZ()
 	{
-		switch (viewAngle)
+		switch (CameraSystem.viewAngle)
 		{
 			case 0:
 				currentBlock.RotateZClockWise();
@@ -697,9 +702,9 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
+			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
-			switch (viewAngle)
+			switch (CameraSystem.viewAngle)
 			{
 				case 0:
 					currentBlock.RotateZCounterClockWise();
@@ -724,50 +729,48 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		}
 		else
 		{
-			PlayRandomSfx(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
+			AudioSystem.Instance.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
-			Vector3 offset = StartOffset + currentBlock.Pos.ToVector() + new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
-			                 new Vector3(1f, -1f, 1f) * (currentBlock.Size * blockSize * 0.5f);
+			Vector3 offset = RenderSystem.startOffset                    + currentBlock.Pos.ToVector() +
+			                 new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
+			                 new Vector3(1f,    -1f,  1f)    * (currentBlock.Size * blockSize * 0.5f);
 
 			Quaternion rotation;
 
-			switch (viewAngle)
+			switch (CameraSystem.viewAngle)
 			{
 				case 0:
-					rotation         = Quaternion.Euler(-90f, 0f, 0f);
-					rotationParticle = new ParticleRender(vfxRotation, offset, rotation);
+					rotation = Quaternion.Euler(-90f, 0f, 0f);
+					EffectSystem.Instance.CreateRotationEffect(ref offset, ref rotation);
 
 					break;
 
 				case 1:
-					rotation         = Quaternion.Euler(0f, 0f, 90f);
-					rotationParticle = new ParticleRender(vfxRotation, offset, rotation);
+					rotation = Quaternion.Euler(0f, 0f, 90f);
+					EffectSystem.Instance.CreateRotationEffect(ref offset, ref rotation);
 
 					break;
 
 				case 2:
-					rotation         = Quaternion.Euler(90f, 0f, 0f);
-					rotationParticle = new ParticleRender(vfxRotation, offset, rotation);
+					rotation = Quaternion.Euler(90f, 0f, 0f);
+					EffectSystem.Instance.CreateRotationEffect(ref offset, ref rotation);
 
 					break;
 
 				case 3:
-					rotation         = Quaternion.Euler(0f, 0f, -90f);
-					rotationParticle = new ParticleRender(vfxRotation, offset, rotation);
+					rotation = Quaternion.Euler(0f, 0f, -90f);
+					EffectSystem.Instance.CreateRotationEffect(ref offset, ref rotation);
 
 					break;
 			}
 
-			Destroy(rotationParticle!.Obj, 0.3f);
-			rotationParticle = null;
-
-			RefreshCurrentBlock();
+			RenderSystem.Instance.RefreshCurrentBlock();
 		}
 	}
 
 	public void RotateBlockZInv()
 	{
-		switch (viewAngle)
+		switch (CameraSystem.viewAngle)
 		{
 			case 0:
 				currentBlock.RotateZCounterClockWise();
@@ -792,9 +795,9 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
+			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
-			switch (viewAngle)
+			switch (CameraSystem.viewAngle)
 			{
 				case 0:
 					currentBlock.RotateZClockWise();
@@ -819,44 +822,42 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		}
 		else
 		{
-			PlayRandomSfx(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
+			AudioSystem.Instance.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
-			Vector3 offset = StartOffset + currentBlock.Pos.ToVector() + new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
-			                 new Vector3(1f, -1f, 1f) * (currentBlock.Size * blockSize * 0.5f);
+			Vector3 offset = RenderSystem.startOffset                    + currentBlock.Pos.ToVector() +
+			                 new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
+			                 new Vector3(1f,    -1f,  1f)    * (currentBlock.Size * blockSize * 0.5f);
 
 			Quaternion rotation;
 
-			switch (viewAngle)
+			switch (CameraSystem.viewAngle)
 			{
 				case 0:
-					rotation         = Quaternion.Euler(90f, 0f, 0f);
-					rotationParticle = new ParticleRender(vfxRotation, offset, rotation);
+					rotation = Quaternion.Euler(90f, 0f, 0f);
+					EffectSystem.Instance.CreateRotationEffect(ref offset, ref rotation);
 
 					break;
 
 				case 1:
-					rotation         = Quaternion.Euler(0f, 0f, -90f);
-					rotationParticle = new ParticleRender(vfxRotation, offset, rotation);
+					rotation = Quaternion.Euler(0f, 0f, -90f);
+					EffectSystem.Instance.CreateRotationEffect(ref offset, ref rotation);
 
 					break;
 
 				case 2:
-					rotation         = Quaternion.Euler(-90f, 0f, 0f);
-					rotationParticle = new ParticleRender(vfxRotation, offset, rotation);
+					rotation = Quaternion.Euler(-90f, 0f, 0f);
+					EffectSystem.Instance.CreateRotationEffect(ref offset, ref rotation);
 
 					break;
 
 				case 3:
-					rotation         = Quaternion.Euler(0f, 0f, 90f);
-					rotationParticle = new ParticleRender(vfxRotation, offset, rotation);
+					rotation = Quaternion.Euler(0f, 0f, 90f);
+					EffectSystem.Instance.CreateRotationEffect(ref offset, ref rotation);
 
 					break;
 			}
 
-			Destroy(rotationParticle!.Obj, 0.3f);
-			rotationParticle = null;
-
-			RefreshCurrentBlock();
+			RenderSystem.Instance.RefreshCurrentBlock();
 		}
 	}
 
@@ -866,95 +867,95 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 	public void MoveBlockLeft()
 	{
-		currentBlock.Move(Coord.Left[viewAngle]);
+		currentBlock.Move(Coord.Left[CameraSystem.viewAngle]);
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
+			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
-			currentBlock.Move(Coord.Right[viewAngle]);
+			currentBlock.Move(Coord.Right[CameraSystem.viewAngle]);
 		}
 		else
 		{
-			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.MOVE));
+			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.MOVE);
 
-			RefreshCurrentBlock();
+			RenderSystem.Instance.RefreshCurrentBlock();
 		}
 	}
 
 	public void MoveBlockRight()
 	{
-		currentBlock.Move(Coord.Right[viewAngle]);
+		currentBlock.Move(Coord.Right[CameraSystem.viewAngle]);
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
+			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
-			currentBlock.Move(Coord.Left[viewAngle]);
+			currentBlock.Move(Coord.Left[CameraSystem.viewAngle]);
 		}
 		else
 		{
-			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.MOVE));
+			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.MOVE);
 
-			RefreshCurrentBlock();
+			RenderSystem.Instance.RefreshCurrentBlock();
 		}
 	}
 
 	public void MoveBlockForward()
 	{
-		currentBlock.Move(Coord.Forward[viewAngle]);
+		currentBlock.Move(Coord.Forward[CameraSystem.viewAngle]);
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
+			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
-			currentBlock.Move(Coord.Backward[viewAngle]);
+			currentBlock.Move(Coord.Backward[CameraSystem.viewAngle]);
 		}
 		else
 		{
-			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.MOVE));
+			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.MOVE);
 
-			RefreshCurrentBlock();
+			RenderSystem.Instance.RefreshCurrentBlock();
 		}
 	}
 
 	public void MoveBlockBackward()
 	{
-		currentBlock.Move(Coord.Backward[viewAngle]);
+		currentBlock.Move(Coord.Backward[CameraSystem.viewAngle]);
 
 		if (!BlockFits(currentBlock))
 		{
-			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.UNAVAILABLE));
+			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
-			currentBlock.Move(Coord.Forward[viewAngle]);
+			currentBlock.Move(Coord.Forward[CameraSystem.viewAngle]);
 		}
 		else
 		{
-			StartCoroutine(PlaySfx(AudioSystem.SFX_VALUE.MOVE));
+			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.MOVE);
 
-			RefreshCurrentBlock();
+			RenderSystem.Instance.RefreshCurrentBlock();
 		}
 	}
 
-	public void MoveBlockDown()
+	private void MoveBlockDown()
 	{
 		currentBlock.Move(Coord.Down);
 
 		if (BlockFits(currentBlock))
 		{
-			RenderCurrentBlock();
+			RenderSystem.RenderCurrentBlock();
 
 			return;
 		}
 
-		PlayRandomSfx(AudioSystem.SFX_VALUE.DROP1, AudioSystem.SFX_VALUE.DROP2);
+		AudioSystem.Instance.PlayRandomSFX(AudioSystem.SFX_VALUE.DROP1, AudioSystem.SFX_VALUE.DROP2);
 
 		currentBlock.Move(Coord.Up);
-		DropEffect();
+		EffectSystem.DropEffect();
 		PlaceBlock();
 	}
 
-	public void DropBlock()
+	private void DropBlock()
 	{
 		int num = 0;
 
@@ -966,17 +967,17 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		if (num > 2)
 		{
-			PlayRandomSfx(AudioSystem.SFX_VALUE.HARD_DROP1, AudioSystem.SFX_VALUE.HARD_DROP5);
+			AudioSystem.Instance.PlayRandomSFX(AudioSystem.SFX_VALUE.HARD_DROP1, AudioSystem.SFX_VALUE.HARD_DROP5);
 
-			StartCoroutine(CameraShake());
+			StartCoroutine(CameraSystem.Instance.Shake());
 		}
 		else
 		{
-			PlayRandomSfx(AudioSystem.SFX_VALUE.DROP1, AudioSystem.SFX_VALUE.DROP2);
+			AudioSystem.Instance.PlayRandomSFX(AudioSystem.SFX_VALUE.DROP1, AudioSystem.SFX_VALUE.DROP2);
 		}
 
 		currentBlock.Move(Coord.Up);
-		DropEffect();
+		EffectSystem.DropEffect();
 		PlaceBlock();
 	}
 

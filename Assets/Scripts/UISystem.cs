@@ -89,9 +89,9 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		"ButtonToggle",
 		"ButtonHelp",
 	};
-	private OPTION_PANEL curPanel = OPTION_PANEL.SOUND;
-	private Slider       sliderBGM;
-	private Slider       sliderSFX;
+	private const OPTION_PANEL curPanel = OPTION_PANEL.SOUND;
+	private       Slider       sliderBGM;
+	private       Slider       sliderSFX;
 
 #endregion
 
@@ -233,7 +233,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		sliderSFX = GameObject.Find("SFXSlider").GetComponent<Slider>();
 
 		sliderBGM.minValue = 0f;
-		sliderBGM.maxValue = AudioSystem.Instance.BGMVolume;
+		sliderBGM.maxValue = AudioSystem.BGMVolume;
 
 		sliderSFX.minValue = 0f;
 		sliderSFX.maxValue = AudioSystem.Instance.SFXVolume;
@@ -340,7 +340,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 	private void OptionPanel(OPTION_PANEL panel)
 	{
 		if (curPanel == panel) return;
-		
+
 		for (int i = 0; i < 3; ++i)
 		{
 			buttons["OptionScreen"][OPTION_BTN_STR[i]].gameObject.SetActive(false);
@@ -354,7 +354,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		switch (type)
 		{
 			case SLIDER_TYPE.BGM:
-				AudioSystem.Instance.BGMVolume = sliderBGM.value;
+				AudioSystem.BGMVolume = sliderBGM.value;
 
 				break;
 

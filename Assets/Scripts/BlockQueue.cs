@@ -17,9 +17,9 @@ public class BlockQueue
 	{
 		if (GameManager.testBlock)
 		{
-			return blockCreateFunc.BlockSpawn((int)GameManager.testBlockType);
+			return blockCreateFunc.BlockSpawn((int)GameManager.Instance.testBlockType);
 		}
-		
+
 		Random randValue = new();
 
 		return blockCreateFunc.BlockSpawn(randValue.Next(0, blockTypeNum));
@@ -63,6 +63,7 @@ public class BlockQueue
 		{
 			nextBlock = RandomBlock();
 		} while (block.GetId() == nextBlock.GetId());
+
 		block.Reset();
 
 		return block;
