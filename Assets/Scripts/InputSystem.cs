@@ -27,12 +27,7 @@ public sealed class InputSystem : MonoSingleton<InputSystem>
 	public const    float       defaultKeyInterval = 0.2f;
 	public delegate void        LogicFunc();
 
-	public InputSystem()
-	{
-		Init();
-	}
-
-	protected override void Init()
+	public override void Init()
 	{
 		clickPos = Vector2.zero;
 

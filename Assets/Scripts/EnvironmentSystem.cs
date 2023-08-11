@@ -16,13 +16,11 @@ public sealed class EnvironmentSystem : MonoSingleton<EnvironmentSystem>
 	private static readonly int             speed = Shader.PropertyToID("_Speed");
 	private static readonly int             phase = Animator.StringToHash("Phase");
 
-	public EnvironmentSystem()
+	public override void Init()
 	{
-		Init();
-	}
-
-	private void Start()
-	{
+		cubeTrs       = new List<Transform>();
+		cubesFloating = new List<bool>();
+		
 		cubeMeshes    = GameObject.Find("Meshes");
 		cubeAnimators = cubeMeshes.GetComponentsInChildren<Animator>();
 		cubeRenderers = cubeMeshes.GetComponentsInChildren<Renderer>();
@@ -73,12 +71,6 @@ public sealed class EnvironmentSystem : MonoSingleton<EnvironmentSystem>
 		}
 
 		animFunc = StartCoroutine(AnimChange());
-	}
-
-	protected override void Init()
-	{
-		cubeTrs       = new List<Transform>();
-		cubesFloating = new List<bool>();
 	}
 
 	private IEnumerator AnimChange()

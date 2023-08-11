@@ -4,25 +4,26 @@ public class BlockQueue
 {
 	public BlockQueue()
 	{
-		nextBlock = RandomBlock();
-		saveBlock = null;
+		blockCreateFunc = new BlockFactory();
+		nextBlock       = RandomBlock();
+		saveBlock       = null;
 	}
 
-	private static readonly BlockFactory blockCreateFunc = new();
-	private const           int          blockTypeNum    = 7;
-	private                 Block        nextBlock;
-	private                 Block        saveBlock;
+	private static BlockFactory blockCreateFunc;
+	private const  int          blockTypeNum    = 7;
+	private        Block        nextBlock;
+	private        Block        saveBlock;
 
 	private static Block RandomBlock()
 	{
 		if (GameManager.testBlock)
 		{
-			return blockCreateFunc.BlockSpawn((int)GameManager.Instance.testBlockType);
+			return BlockFactory.BlockSpawn((int)GameManager.Instance.testBlockType);
 		}
 
 		Random randValue = new();
 
-		return blockCreateFunc.BlockSpawn(randValue.Next(0, blockTypeNum));
+		return BlockFactory.BlockSpawn(randValue.Next(0, blockTypeNum));
 	}
 
 	public void SaveBlockReset()

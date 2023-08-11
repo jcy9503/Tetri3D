@@ -46,5 +46,5 @@ public abstract class MonoSingleton<T> : MonoBehaviour where T : MonoBehaviour
 		shuttingDown = true;
 	}
 
-	protected abstract void Init();
+	public abstract void Init();
 }

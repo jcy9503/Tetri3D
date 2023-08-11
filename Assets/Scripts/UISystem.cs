@@ -85,8 +85,8 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		"GraphicTab",
 		"ControlTab",
 		"OptionHome",
-		"ColorToggle",
-		"ButtonToggle",
+		"ColorOption",
+		"ButtonOption",
 		"ButtonHelp",
 	};
 	private const OPTION_PANEL curPanel = OPTION_PANEL.SOUND;
@@ -117,12 +117,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 #endregion
 
-	public UISystem()
-	{
-		Init();
-	}
-
-	protected override void Init()
+	public override void Init()
 	{
 		screenObjects = new Dictionary<string, CanvasGroup>();
 
@@ -199,7 +194,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		buttons[SCREEN_STR[1]][PLAY_BTN_STR[11]].onClick.AddListener(GameManager.Instance.RotateBlockZ);
 		buttons[SCREEN_STR[1]][PLAY_BTN_STR[12]].onClick.AddListener(GameManager.Instance.RotateBlockZInv);
 
-		playScoreTxt      = GameObject.Find("GameScoreText").GetComponent<TMP_Text>();
+		playScoreTxt      = GameObject.Find("GameScoreTxt").GetComponent<TMP_Text>();
 		playScoreTxt.text = "0";
 
 #if UNITY_EDITOR || UNITY_STANDALONE_WIN
@@ -236,7 +231,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		sliderBGM.maxValue = AudioSystem.BGMVolume;
 
 		sliderSFX.minValue = 0f;
-		sliderSFX.maxValue = AudioSystem.Instance.SFXVolume;
+		sliderSFX.maxValue = AudioSystem.SFXVolume;
 
 		sliderBGM.onValueChanged.AddListener(delegate { OptionSlider(SLIDER_TYPE.BGM); });
 		sliderSFX.onValueChanged.AddListener(delegate { OptionSlider(SLIDER_TYPE.SFX); });
@@ -359,7 +354,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 				break;
 
 			case SLIDER_TYPE.SFX:
-				AudioSystem.Instance.SFXVolume = sliderSFX.value;
+				AudioSystem.SFXVolume = sliderSFX.value;
 
 				break;
 		}

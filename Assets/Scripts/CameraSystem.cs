@@ -31,27 +31,19 @@ public sealed class CameraSystem : MonoSingleton<CameraSystem>
 	}
 	private static readonly int speed = Shader.PropertyToID("_Speed");
 
-	public CameraSystem()
-	{
-		Init();
-	}
-
-	private void Start()
-	{
-		mainCameraObj                     = GameObject.Find("Main Camera");
-		mainCameraObj!.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
-
-		mainCamera    = mainCameraObj.GetComponent<Camera>();
-		rotatorTr     = GameObject.Find("Rotator").GetComponent<Transform>();
-	}
-
-	protected override void Init()
+	public override void Init()
 	{
 		mementoRotation                   = Quaternion.identity;
 		Dir                               = false;
 		checkDir                          = false;
 		viewAngle                         = 0;
 		isShaking                         = false;
+		
+		mainCameraObj                     = GameObject.Find("Main Camera");
+		mainCameraObj!.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+
+		mainCamera = mainCameraObj.GetComponent<Camera>();
+		rotatorTr  = GameObject.Find("Rotator").GetComponent<Transform>();
 	}
 
 	public static void RotateHorizontal(bool direction)

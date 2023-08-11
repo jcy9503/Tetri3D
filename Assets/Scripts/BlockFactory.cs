@@ -2,24 +2,19 @@ using System.Collections.Generic;
 
 public class BlockFactory
 {
-	private delegate Block              CreateBlocks();
-	private readonly List<CreateBlocks> createFactory;
-
-	public BlockFactory()
+	private delegate Block CreateBlocks();
+	private static readonly List<CreateBlocks> createFactory = new()
 	{
-		createFactory = new List<CreateBlocks>
-		{
-			CreateBlockI,
-			CreateBlockL,
-			CreateBlockT,
-			CreateBlockO,
-			CreateBlockJ,
-			CreateBlockZ,
-			CreateBlockS
-		};
-	}
+		CreateBlockI,
+		CreateBlockL,
+		CreateBlockT,
+		CreateBlockO,
+		CreateBlockJ,
+		CreateBlockZ,
+		CreateBlockS
+	};
 
-	public Block BlockSpawn(int id)
+	public static Block BlockSpawn(int id)
 	{
 		CreateBlocks func = createFactory[id];
 

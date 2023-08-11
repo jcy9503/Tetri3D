@@ -289,25 +289,17 @@ public sealed class RenderSystem : MonoSingleton<RenderSystem>
 	public static           Vector3          startOffset;
 	private static readonly int              gradientColor = Shader.PropertyToID("_GradientColor");
 
-	public RenderSystem()
-	{
-		Init();
-	}
-
-	protected override void Init()
+	public override void Init()
 	{
 		blockMeshList  = new List<PrefabMesh>();
 		shadowMeshList = new List<PrefabMesh>();
 		gridMeshList   = new List<PrefabMesh>();
 		lineMeshList   = new List<LineMesh>();
-	}
-
-	private void Start()
-	{
+		
 		gridObj   = GameObject.Find("Grid");
 		blockObj  = GameObject.Find("Blocks");
 		shadowObj = GameObject.Find("Shadow");
-    }
+	}
 
 	public static void RenderLine()
 	{
@@ -432,7 +424,7 @@ public sealed class RenderSystem : MonoSingleton<RenderSystem>
 
 		do
 		{
-			GameManager.currentBlock.Move(Coord.Down);
+			GameManager.shadowBlock.Move(Coord.Down);
 		} while (GameManager.BlockFits(GameManager.shadowBlock));
 
 		GameManager.shadowBlock.Move(Coord.Up);
@@ -448,7 +440,7 @@ public sealed class RenderSystem : MonoSingleton<RenderSystem>
 		}
 	}
 
-	public void RenderGrid()
+	public static void RenderGrid()
 	{
 		ClearGrid();
 

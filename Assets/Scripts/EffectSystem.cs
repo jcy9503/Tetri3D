@@ -24,18 +24,10 @@ public sealed class EffectSystem : MonoSingleton<EffectSystem>
 	private static readonly int              color      = Shader.PropertyToID("_Color");
 	public static readonly  int              power      = Shader.PropertyToID("_Power");
 
-	public EffectSystem()
-	{
-		Init();
-	}
-
-	protected override void Init()
+	public override void Init()
 	{
 		rotationParticle = null;
-	}
-
-	private void Start()
-	{
+		
 		grid = GameManager.grid;
 		
 		lineMeshes = RenderSystem.lineMeshList;

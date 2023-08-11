@@ -89,9 +89,9 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 			audioSourceBGM.volume = bgmVolume;
 		}
 	}
-	public const float bgmVolumeAdj = 3f;
-	private      float sfxVolume    = 1f;
-	public float SFXVolume
+	public const   float bgmVolumeAdj = 3f;
+	private static float sfxVolume    = 1f;
+	public static float SFXVolume
 	{
 		get => sfxVolume;
 		set
@@ -107,34 +107,26 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 	private const float     audioInterval = 2f;
 	private       Coroutine mainBGM;
 
-	public AudioSystem()
-	{
-		Init();
-	}
-
-	protected override void Init()
+	public override void Init()
 	{
 		bgmSource = new List<AudioClip>();
 
 		sfxIdx = -1;
 
 		sfxSource = new List<AudioClip>();
-	}
 
-	private void Start()
-	{
 		audioSourceBGM  = CameraSystem.mainCameraObj.AddComponent<AudioSource>();
 		audioSourcesSFX = RenderSystem.gridObj.GetComponentsInChildren<AudioSource>();
 
 		audioSourceBGM.playOnAwake = true;
 		audioSourceBGM.loop        = false;
 		audioSourceBGM.volume      = bgmVolume;
-		
+
 		foreach (string path in BGM_PATH)
 		{
 			bgmSource.Add(Resources.Load<AudioClip>(path));
 		}
-		
+
 		foreach (string path in SFX_PATH)
 		{
 			sfxSource.Add(Resources.Load<AudioClip>(path));
@@ -143,7 +135,7 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 		mainBGM = StartCoroutine(PlayMainBGM());
 	}
 
-	private IEnumerator PlayMainBGM()
+	private static IEnumerator PlayMainBGM()
 	{
 		audioSourceBGM.clip   = bgmSource[0];
 		audioSourceBGM.volume = bgmVolume;

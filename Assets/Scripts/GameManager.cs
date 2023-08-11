@@ -68,13 +68,10 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 #region MonoFunction
 
-	public GameManager()
-	{
-		Init();
-	}
-
 	private void Start()
 	{
+		Init();
+		
 #if UNITY_EDITOR
 		grid = new GameGrid(ref gridSize, blockSize);
 
@@ -82,24 +79,34 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		grid = new GameGrid(ref gridSize, blockSize);
 
 #endif
-		grid.Mesh.Obj.transform.parent = RenderSystem.gridObj.transform;
-
+		
 		BlockQueue   = new BlockQueue();
 		currentBlock = BlockQueue.GetAndUpdateBlock();
-
+        
+		CameraSystem.Instance.Init();
+		RenderSystem.Instance.Init();
+		
+		grid.Mesh.Obj.transform.parent = RenderSystem.gridObj.transform;
+		
 		RenderSystem.startOffset = new Vector3(-grid.SizeX / 2f + blockSize / 2,
 		                                       grid.SizeY  / 2f - blockSize / 2,
 		                                       -grid.SizeZ / 2f + blockSize / 2);
-		if (testGrid) RenderSystem.Instance.RenderGrid();
+		if (testGrid) RenderSystem.RenderGrid();
 		
 		RenderSystem.RenderLine();
 		RenderSystem.RenderCurrentBlock();
 		RenderSystem.RenderShadowBlock();
+		
+		AudioSystem.Instance.Init();
+		EffectSystem.Instance.Init();
+		EnvironmentSystem.Instance.Init();
+		InputSystem.Instance.Init();
+		UISystem.Instance.Init();
 	}
 
-	protected override void Init()
+	public override void Init()
 	{
-		isGameOver = true;
+		isGameOver = false;
 		isPause    = true;
 		totalScore = 0;
 
@@ -378,7 +385,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.CLEAR);
 		}
 
-		RenderSystem.Instance.RenderGrid();
+		RenderSystem.RenderGrid();
 
 		cleared.Clear();
 
