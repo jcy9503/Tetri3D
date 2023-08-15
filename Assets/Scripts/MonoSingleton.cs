@@ -4,7 +4,7 @@ public abstract class MonoSingleton<T> : MonoBehaviour where T : MonoBehaviour
 {
 	private static          bool   shuttingDown;
 	private static          T      instance;
-	private static readonly object locker = new object();
+	private static readonly object locker = new();
 	public static T Instance
 	{
 		get
@@ -35,6 +35,8 @@ public abstract class MonoSingleton<T> : MonoBehaviour where T : MonoBehaviour
 			return instance;
 		}
 	}
+
+	protected delegate void Callback();
 
 	private void OnApplicationQuit()
 	{

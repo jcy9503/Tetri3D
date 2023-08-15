@@ -262,7 +262,7 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 		mainBGM = StartCoroutine(RewindGameBGM());
 	}
 
-	public void GameStart()
+	public void AudioGameStart()
 	{
 		StartCoroutine(PlayGameBGM());
 	}

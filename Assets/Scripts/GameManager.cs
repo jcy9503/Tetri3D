@@ -31,6 +31,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 	public static  bool             testGrid;
 	public static  bool             gridRegen;
 	public static  bool             testBlock;
+	private static bool             loaded;
 	public static  int              testHeight;
 	private static int              testFieldSize;
 	public         Block.BLOCK_TYPE testBlockType;
@@ -70,8 +71,10 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 	private void Start()
 	{
+		loaded = false;
+
 		Init();
-		
+
 #if UNITY_EDITOR
 		grid = new GameGrid(ref gridSize, blockSize);
 
@@ -79,29 +82,31 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		grid = new GameGrid(ref gridSize, blockSize);
 
 #endif
-		
+
 		BlockQueue   = new BlockQueue();
 		currentBlock = BlockQueue.GetAndUpdateBlock();
-        
+
 		CameraSystem.Instance.Init();
 		RenderSystem.Instance.Init();
-		
+
 		grid.Mesh.Obj.transform.parent = RenderSystem.gridObj.transform;
-		
+
 		RenderSystem.startOffset = new Vector3(-grid.SizeX / 2f + blockSize / 2,
 		                                       grid.SizeY  / 2f - blockSize / 2,
 		                                       -grid.SizeZ / 2f + blockSize / 2);
 		if (testGrid) RenderSystem.RenderGrid();
-		
+
 		RenderSystem.RenderLine();
 		RenderSystem.RenderCurrentBlock();
 		RenderSystem.RenderShadowBlock();
-		
+
 		AudioSystem.Instance.Init();
 		EffectSystem.Instance.Init();
 		EnvironmentSystem.Instance.Init();
 		InputSystem.Instance.Init();
 		UISystem.Instance.Init();
+
+		loaded = true;
 	}
 
 	public override void Init()
@@ -134,6 +139,8 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 	private void Update()
 	{
+		if (!loaded) return;
+
 		if (isGameOver)
 		{
 			Terminate();
@@ -246,19 +253,42 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		RenderSystem.Instance.RefreshCurrentBlock();
 	}
 
-	public IEnumerator GameStart()
+	public void GameStart()
 	{
-		AudioSystem.Instance.GameStart();
+		AudioSystem.Instance.AudioGameStart();
 
-		yield return StartCoroutine(CameraSystem.Instance.GameStart());
+		StartCoroutine(CameraGameStart(StartLogic));
+	}
 
-		isPause = false;
+	private static IEnumerator CameraGameStart(Callback func)
+	{
+		const float unit = 0.05f;
 
+		for (float elapsed = 0f; elapsed < 2f; elapsed += unit)
+		{
+			CameraSystem.mainCamera.transform.rotation = Quaternion.Slerp(CameraSystem.mainCamera.transform.rotation,
+			                                                              Quaternion.LookRotation(
+				                                                               new Vector3(0f, -6.35f, 23.7f)), 0.01f);
+
+			//yield return new WaitForSeconds(unit);
+		}
+
+		CameraSystem.mainCamera.transform.rotation = CameraSystem.initRotation;
+
+		func();
+
+		yield break;
+	}
+
+	private void StartLogic()
+	{
 		updateLogics = new List<Coroutine>
 		{
 			StartCoroutine(BlockDown()),
 			StartCoroutine(CameraSystem.AngleCalculate()),
 		};
+
+		isPause = false;
 	}
 
 	public IEnumerator GameHome()

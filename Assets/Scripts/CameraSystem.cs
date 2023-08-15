@@ -5,20 +5,20 @@ using Random = UnityEngine.Random;
 
 public sealed class CameraSystem : MonoSingleton<CameraSystem>
 {
-	public static    GameObject mainCameraObj;
-	private static   Camera     mainCamera;
-	public static    Transform  rotatorTr;
-	public static    Quaternion mementoRotation;
-	private readonly Quaternion initRotation        = Quaternion.Euler(15f, 0f, 0f);
-	public const     float      rotationConstraintX = 55f;
-	public const     float      cameraSpeed         = 2000f;
-	private const    float      rotationSpeed       = 1f;
-	private const    float      shakeAmount         = 0.5f;
-	private const    float      shakeTime           = 0.2f;
-	public static    bool       isShaking;
-	public static    int        viewAngle;
-	public static    bool       checkDir;
-	private static   bool       dir;
+	public static          GameObject mainCameraObj;
+	public static          Camera     mainCamera;
+	public static          Transform  rotatorTr;
+	public static          Quaternion mementoRotation;
+	public static readonly Quaternion initRotation        = Quaternion.Euler(15f, 0f, 0f);
+	public const           float      rotationConstraintX = 55f;
+	public const           float      cameraSpeed         = 2000f;
+	private const          float      rotationSpeed       = 1f;
+	private const          float      shakeAmount         = 0.5f;
+	private const          float      shakeTime           = 0.2f;
+	public static          bool       isShaking;
+	public static          int        viewAngle;
+	public static          bool       checkDir;
+	private static         bool       dir;
 	public static bool Dir
 	{
 		get => dir;
@@ -33,12 +33,12 @@ public sealed class CameraSystem : MonoSingleton<CameraSystem>
 
 	public override void Init()
 	{
-		mementoRotation                   = Quaternion.identity;
-		Dir                               = false;
-		checkDir                          = false;
-		viewAngle                         = 0;
-		isShaking                         = false;
-		
+		mementoRotation = Quaternion.identity;
+		Dir             = false;
+		checkDir        = false;
+		viewAngle       = 0;
+		isShaking       = false;
+
 		mainCameraObj                     = GameObject.Find("Main Camera");
 		mainCameraObj!.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
 
@@ -108,37 +108,19 @@ public sealed class CameraSystem : MonoSingleton<CameraSystem>
 		RotatorPositionClear();
 	}
 
-	public IEnumerator GameStart()
-	{
-		float pastTime = 0f;
-
-		while (pastTime < 2f)
-		{
-			mainCamera.transform.rotation = Quaternion.Slerp(mainCamera.transform.rotation,
-			                                                 Quaternion.LookRotation(new Vector3(0f, -6.35f, 23.7f)),
-			                                                 0.05f);
-
-			yield return new WaitForSeconds(0.01f);
-
-			pastTime += 0.01f;
-		}
-
-		mainCamera.transform.rotation = initRotation;
-	}
-
 	public static IEnumerator MainMenu()
 	{
-		float pastTime = 0f;
+		float elapsedTime = 0f;
 
-		while (pastTime < 2f)
+		while (elapsedTime < 2f)
 		{
 			mainCamera.transform.rotation = Quaternion.Slerp(mainCamera.transform.rotation,
 			                                                 Quaternion.LookRotation(Vector3.right),
-			                                                 0.05f);
+			                                                 0.001f);
 
-			yield return new WaitForSeconds(0.01f);
+			yield return new WaitForSeconds(0.05f);
 
-			pastTime += 0.01f;
+			elapsedTime += 0.05f;
 		}
 
 		mainCamera.transform.rotation = Quaternion.Euler(90f, 0f, 0f);

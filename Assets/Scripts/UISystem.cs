@@ -58,7 +58,8 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		"RotateZ",
 		"RotateZInv",
 	};
-	private TMP_Text playScoreTxt;
+	private TMP_Text   playScoreTxt;
+	private GameObject pauseScreen;
 
 #endregion
 
@@ -153,7 +154,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 			buttons[SCREEN_STR[0]].Add(MAIN_BTN_STR[i], mainObjs.Dequeue().GetComponent<Button>());
 		}
 
-		buttons[SCREEN_STR[0]][MAIN_BTN_STR[0]].onClick.AddListener(() => StartCoroutine(GameStart()));
+		buttons[SCREEN_STR[0]][MAIN_BTN_STR[0]].onClick.AddListener(UIGameStart);
 		//mainButtons["Option"].onClick.AddListener(Option);
 		//mainButtons["LeaderBoard"].onClick.AddListener(LeaderBoard);
 		buttons[SCREEN_STR[0]][MAIN_BTN_STR[3]].onClick.AddListener(() => mainQuitPanel.gameObject.SetActive(true));
@@ -204,6 +205,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 #endif
 
+		playObjects["PauseScreen"].SetActive(false);
 		screenObjects[SCREEN_STR[1]].gameObject.SetActive(false);
 	}
 
@@ -276,11 +278,11 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 #region Main Functions
 
-	private IEnumerator GameStart()
+	private void UIGameStart()
 	{
-		yield return StartCoroutine(FadeOutIn("MainScreen", "PlayScreen", 1f));
+		StartCoroutine(FadeOutIn("MainScreen", "PlayScreen", 1f));
 
-		StartCoroutine(GameManager.Instance.GameStart());
+		GameManager.Instance.GameStart();
 	}
 
 	private IEnumerator MainOption()
@@ -427,13 +429,6 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 		screenObjects[fadeOut].alpha = 0f;
 
-		foreach (KeyValuePair<string, Button> button in buttons[fadeOut])
-		{
-			button.Value.interactable = true;
-		}
-
-		screenObjects[fadeOut].gameObject.SetActive(false);
-
 	#endregion
 
 	#region Fade In
@@ -458,6 +453,17 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 		screenObjects[fadeIn].alpha = 1f;
 
+	#endregion
+
+	#region After
+
+		foreach (KeyValuePair<string, Button> button in buttons[fadeOut])
+		{
+			button.Value.interactable = true;
+		}
+
+		screenObjects[fadeOut].gameObject.SetActive(false);
+		
 		foreach (KeyValuePair<string, Button> button in buttons[fadeIn])
 		{
 			button.Value.interactable = true;
