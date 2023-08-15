@@ -16,10 +16,10 @@ public sealed class GameManager : MonoSingleton<GameManager>
 #region Variables
 
 	// Game Logic
-	private       int[]           gridSize = { 10, 22, 10 };
-	public static bool            isGameOver;
-	public static bool            isPause;
-	private       List<Coroutine> updateLogics;
+	private       int[]            gridSize = { 10, 22, 10 };
+	public static bool             isGameOver;
+	public static bool             isPause;
+	public        CoroutineManager coroutineManager;
 
 	// Score
 	private const    int   baseScore  = 100;
@@ -82,6 +82,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		grid = new GameGrid(ref gridSize, blockSize);
 
 #endif
+		coroutineManager = GameObject.Find("CoroutineManager").GetComponent<CoroutineManager>();
 
 		BlockQueue   = new BlockQueue();
 		currentBlock = BlockQueue.GetAndUpdateBlock();
@@ -111,9 +112,9 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 	public override void Init()
 	{
-		isGameOver = false;
-		isPause    = true;
-		totalScore = 0;
+		isGameOver       = false;
+		isPause          = true;
+		totalScore       = 0;
 
 		testHeight    = 7;
 		testFieldSize = 10;
@@ -248,47 +249,14 @@ public sealed class GameManager : MonoSingleton<GameManager>
 	private void SaveBlock()
 	{
 		canSave = false;
-		AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.SHIFT);
+		coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.SHIFT);
 		currentBlock = BlockQueue.SaveAndUpdateBlock(currentBlock);
 		RenderSystem.Instance.RefreshCurrentBlock();
 	}
 
 	public void GameStart()
 	{
-		AudioSystem.Instance.AudioGameStart();
-
-		StartCoroutine(CameraGameStart(StartLogic));
-	}
-
-	private static IEnumerator CameraGameStart(Callback func)
-	{
-		const float unit = 0.05f;
-
-		for (float elapsed = 0f; elapsed < 2f; elapsed += unit)
-		{
-			CameraSystem.mainCamera.transform.rotation = Quaternion.Slerp(CameraSystem.mainCamera.transform.rotation,
-			                                                              Quaternion.LookRotation(
-				                                                               new Vector3(0f, -6.35f, 23.7f)), 0.01f);
-
-			//yield return new WaitForSeconds(unit);
-		}
-
-		CameraSystem.mainCamera.transform.rotation = CameraSystem.initRotation;
-
-		func();
-
-		yield break;
-	}
-
-	private void StartLogic()
-	{
-		updateLogics = new List<Coroutine>
-		{
-			StartCoroutine(BlockDown()),
-			StartCoroutine(CameraSystem.AngleCalculate()),
-		};
-
-		isPause = false;
+		coroutineManager.GameStart();
 	}
 
 	public IEnumerator GameHome()
@@ -348,27 +316,6 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		updateLogics.Add(StartCoroutine(BlockDown()));
 		updateLogics.Add(StartCoroutine(CameraSystem.AngleCalculate()));
-	}
-
-	private IEnumerator BlockDown()
-	{
-		while (true)
-		{
-			RenderSystem.RenderCurrentBlock();
-
-			if (!grid.IsPlaneEmpty(0))
-			{
-				isGameOver = true;
-
-				break;
-			}
-
-			MoveBlockDown();
-
-			EffectSystem.Instance.MoveRotationEffect();
-
-			yield return new WaitForSeconds(downInterval);
-		}
 	}
 
 	private void Terminate()
@@ -974,7 +921,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		}
 	}
 
-	private void MoveBlockDown()
+	public void MoveBlockDown()
 	{
 		currentBlock.Move(Coord.Down);
 

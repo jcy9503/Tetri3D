@@ -48,6 +48,7 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 		"BGM/BGM11",
 		"BGM/BGM12",
 	};
+
 	private readonly string[] SFX_PATH =
 	{
 		"SFX/Bool",
@@ -74,21 +75,34 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 		"SFX/Tetris2",
 		"SFX/Resume",
 	};
+
 	public static  AudioSource     audioSourceBGM;
-	private static AudioSource[]   audioSourcesSFX;
-	private static List<AudioClip> bgmSource;
-	private static List<AudioClip> sfxSource;
-	private static int             sfxIdx;
-	private static float           bgmVolume = 0.2f;
+	public static  AudioSource[]   audioSourcesSFX;
+	public static  List<AudioClip> bgmSource;
+	public static  List<AudioClip> sfxSource;
+	public static  int             sfxIdx;
+	public const   float           baseBGMVolume = 0.2f;
+	private static float           bgmVolume     = baseBGMVolume;
 	public static float BGMVolume
 	{
 		get => bgmVolume;
 		set
 		{
-			bgmVolume             = Mathf.Clamp(value, 0f, 0.4f);
+			bgmVolume             = Mathf.Clamp(value, 0f, baseBGMVolume);
 			audioSourceBGM.volume = bgmVolume;
 		}
 	}
+	private static float bgmPitch = 1f;
+	public static float BGMPitch
+	{
+		get => bgmPitch;
+		set
+		{
+			bgmPitch             = Mathf.Clamp(value, 0f, 1f);
+			audioSourceBGM.pitch = bgmPitch;
+		}
+	}
+	public static  bool  BGMPlaying => audioSourceBGM.isPlaying;
 	public const   float bgmVolumeAdj = 3f;
 	private static float sfxVolume    = 1f;
 	public static float SFXVolume
@@ -104,8 +118,6 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 			}
 		}
 	}
-	private const float     audioInterval = 2f;
-	private       Coroutine mainBGM;
 
 	public override void Init()
 	{
@@ -132,148 +144,13 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 			sfxSource.Add(Resources.Load<AudioClip>(path));
 		}
 
-		mainBGM = StartCoroutine(PlayMainBGM());
+		GameManager.Instance.coroutineManager.PlayMainBGM();
 	}
 
-	private static IEnumerator PlayMainBGM()
-	{
-		audioSourceBGM.clip   = bgmSource[0];
-		audioSourceBGM.volume = bgmVolume;
-		audioSourceBGM.pitch  = 1f;
-		audioSourceBGM.Play();
-
-		while (true)
-		{
-			if (GameManager.isGameOver) break;
-
-			if (!audioSourceBGM.isPlaying)
-				audioSourceBGM.Play();
-
-			yield return new WaitForSeconds(audioInterval);
-		}
-	}
-
-	private IEnumerator RewindGameBGM()
-	{
-		while (true)
-		{
-			if (GameManager.isGameOver) break;
-
-			if (GameManager.isPause) continue;
-
-			if (!audioSourceBGM.isPlaying)
-				RandomPlayBGM();
-
-			yield return new WaitForSeconds(audioInterval);
-		}
-	}
-
-	private void RandomPlayBGM()
+	public static void RandomPlayBGM()
 	{
 		audioSourceBGM.volume = bgmVolume;
 		audioSourceBGM.clip   = bgmSource[Random.Range(1, bgmSource.Count)];
 		audioSourceBGM.Play();
-	}
-
-	public IEnumerator PitchDownBGM(float acc)
-	{
-		const float volDown   = 0.01f;
-		const float pitchDown = 0.01f;
-
-		while (audioSourceBGM.volume > 0f)
-		{
-			audioSourceBGM.volume -= volDown   * acc;
-			audioSourceBGM.pitch  -= pitchDown * acc;
-
-			yield return new WaitForSeconds(0.03f);
-		}
-
-		audioSourceBGM.Stop();
-		audioSourceBGM.volume = bgmVolume;
-		audioSourceBGM.pitch  = 1f;
-	}
-
-	private IEnumerator FadeOutBGM(float acc)
-	{
-		const float volDown = 0.01f;
-
-		while (audioSourceBGM.volume > 0f)
-		{
-			audioSourceBGM.volume -= acc * volDown;
-
-			yield return new WaitForSeconds(0.03f);
-		}
-
-		audioSourceBGM.volume = 0f;
-		audioSourceBGM.Pause();
-	}
-
-	private IEnumerator FadeInBGM(float acc)
-	{
-		const float volUp = 0.01f;
-
-		audioSourceBGM.Play();
-
-		while (audioSourceBGM.volume < bgmVolume)
-		{
-			audioSourceBGM.volume += volUp * acc;
-
-			yield return new WaitForSeconds(0.03f);
-		}
-
-		audioSourceBGM.volume = bgmVolume;
-	}
-
-	public void PauseBGM(float acc)
-	{
-		StartCoroutine(FadeOutBGM(acc));
-	}
-
-	public void ResumeBGM(float acc)
-	{
-		StartCoroutine(FadeInBGM(acc));
-	}
-
-	private IEnumerator PlaySFX(SFX_VALUE value)
-	{
-		sfxIdx                         = Mathf.Clamp(sfxIdx + 1, 0, audioSourcesSFX.Length - 1);
-		audioSourcesSFX[sfxIdx].volume = sfxVolume;
-		audioSourcesSFX[sfxIdx].PlayOneShot(sfxSource[(int)value]);
-
-		yield return new WaitForSeconds(1f);
-
-		--sfxIdx;
-	}
-
-	public void PlayRandomSFX(SFX_VALUE start, SFX_VALUE end)
-	{
-		int rand = Random.Range((int)start, (int)end + 1);
-
-		StartCoroutine(PlaySFX((SFX_VALUE)rand));
-	}
-
-	private IEnumerator PlayGameBGM()
-	{
-		StartCoroutine(PlaySFX(SFX_VALUE.CLICK));
-
-		yield return StartCoroutine(FadeOutBGM(bgmVolumeAdj));
-
-		StopCoroutine(mainBGM);
-		mainBGM = StartCoroutine(RewindGameBGM());
-	}
-
-	public void AudioGameStart()
-	{
-		StartCoroutine(PlayGameBGM());
-	}
-
-	public void MainMenu()
-	{
-		mainBGM = StartCoroutine(PlayMainBGM());
-	}
-
-	public void BurstSFX(SFX_VALUE value)
-	{
-		StartCoroutine(PlaySFX(value));
 	}
 }
