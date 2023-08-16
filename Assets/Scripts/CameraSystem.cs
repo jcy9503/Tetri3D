@@ -28,7 +28,7 @@ public sealed class CameraSystem : MonoSingleton<CameraSystem>
 		}
 	}
 
-	public override void Init()
+	public void Init()
 	{
 		mementoRotation = Quaternion.identity;
 		Dir             = false;

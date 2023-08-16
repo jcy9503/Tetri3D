@@ -110,7 +110,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		loaded = true;
 	}
 
-	public override void Init()
+	public void Init()
 	{
 		isGameOver       = false;
 		isPause          = true;
@@ -222,7 +222,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 					break;
 
 				case INPUT_CONTROL.PAUSE:
-					GamePause();
+					coroutineManager.GamePause();
 
 					break;
 
@@ -235,7 +235,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 			switch (control)
 			{
 				case INPUT_CONTROL.PAUSE:
-					GameResume();
+					coroutineManager.GameResume();
 
 					break;
 			}
@@ -251,7 +251,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		canSave = false;
 		coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.SHIFT);
 		currentBlock = BlockQueue.SaveAndUpdateBlock(currentBlock);
-		RenderSystem.Instance.RefreshCurrentBlock();
+		RenderSystem.RefreshCurrentBlock();
 	}
 
 	public void GameStart()
@@ -259,20 +259,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		coroutineManager.GameStart();
 	}
 
-	public IEnumerator GameHome()
-	{
-		AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.CLICK);
-
-		yield return StartCoroutine(CameraSystem.MainMenu());
-
-		isPause = true;
-
-		AudioSystem.Instance.MainMenu();
-
-		Reset();
-	}
-
-	private void Reset()
+	public void Reset()
 	{
 		if (testGrid)
 		{
@@ -292,40 +279,9 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		RenderSystem.Instance.Reset();
 	}
 
-	public void GamePause()
+	private static void Terminate()
 	{
 		isPause = true;
-
-		AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.PAUSE);
-
-		AudioSystem.Instance.PauseBGM(AudioSystem.bgmVolumeAdj);
-
-		foreach (Coroutine coroutine in updateLogics)
-		{
-			StopCoroutine(coroutine);
-		}
-	}
-
-	public void GameResume()
-	{
-		isPause = false;
-
-		AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.RESUME);
-
-		AudioSystem.Instance.ResumeBGM(AudioSystem.bgmVolumeAdj);
-
-		updateLogics.Add(StartCoroutine(BlockDown()));
-		updateLogics.Add(StartCoroutine(CameraSystem.AngleCalculate()));
-	}
-
-	private void Terminate()
-	{
-		if (updateLogics.Count == 0) return;
-
-		foreach (Coroutine coroutine in updateLogics)
-		{
-			StopCoroutine(coroutine);
-		}
 	}
 
 	public static bool BlockFits(Block block)
@@ -348,18 +304,17 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		List<int> cleared = grid.ClearFullRows();
 		ScoreCalc(cleared.Count);
 
-		StartCoroutine(EffectSystem.Instance.ClearEffect(cleared));
+		coroutineManager.GridEffect(cleared);
 
 		if (cleared.Count == 4)
 		{
-			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.TETRIS1);
-			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.TETRIS2);
-
-			StartCoroutine(CameraSystem.CameraFOVEffect());
+			coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.TETRIS1);
+			coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.TETRIS2);
+			coroutineManager.CameraFOVEffect();
 		}
 		else if (cleared.Count > 0)
 		{
-			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.CLEAR);
+			coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.CLEAR);
 		}
 
 		RenderSystem.RenderGrid();
@@ -368,23 +323,23 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		if (CheckGameOver())
 		{
-			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.GAME_OVER);
+			coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.GAME_OVER);
 
 			isPause    = true;
 			isGameOver = true;
 
 			UISystem.Instance.PrintScore(totalScore);
 
-			StartCoroutine(AudioSystem.Instance.PitchDownBGM(0.2f));
-			StartCoroutine(EffectSystem.Instance.GameOverEffect());
+			coroutineManager.PitchDownBGM(0.2f);
+			coroutineManager.GameOverEffect();
 			StartCoroutine(EnvironmentSystem.Instance.AnimStop());
-			StartCoroutine(UISystem.Instance.FadeOutIn("PlayScreen", "GameOverScreen", 1f));
+			coroutineManager.GameOverScreen();
 		}
 		else
 		{
 			canSave      = true;
 			currentBlock = BlockQueue.GetAndUpdateBlock();
-			RenderSystem.Instance.RefreshCurrentBlock();
+			RenderSystem.RefreshCurrentBlock();
 		}
 	}
 
@@ -432,7 +387,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		if (!BlockFits(currentBlock))
 		{
-			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
+			coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
 			switch (CameraSystem.viewAngle)
 			{
@@ -459,7 +414,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		}
 		else
 		{
-			AudioSystem.Instance.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
+			coroutineManager.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
 			Vector3 offset = RenderSystem.startOffset                    + currentBlock.Pos.ToVector() +
 			                 new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
@@ -494,7 +449,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 					break;
 			}
 
-			RenderSystem.Instance.RefreshCurrentBlock();
+			RenderSystem.RefreshCurrentBlock();
 		}
 	}
 
@@ -525,7 +480,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		if (!BlockFits(currentBlock))
 		{
-			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
+			coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
 			switch (CameraSystem.viewAngle)
 			{
@@ -552,7 +507,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		}
 		else
 		{
-			AudioSystem.Instance.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
+			coroutineManager.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
 			Vector3 offset = RenderSystem.startOffset                    + currentBlock.Pos.ToVector() +
 			                 new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
@@ -587,7 +542,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 					break;
 			}
 
-			RenderSystem.Instance.RefreshCurrentBlock();
+			RenderSystem.RefreshCurrentBlock();
 		}
 	}
 
@@ -597,13 +552,13 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		if (!BlockFits(currentBlock))
 		{
-			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
+			coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
 			currentBlock.RotateYCounterClockWise();
 		}
 		else
 		{
-			AudioSystem.Instance.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
+			coroutineManager.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
 			Vector3 offset = RenderSystem.startOffset                    + currentBlock.Pos.ToVector() +
 			                 new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
@@ -621,7 +576,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 					break;
 			}
 
-			RenderSystem.Instance.RefreshCurrentBlock();
+			RenderSystem.RefreshCurrentBlock();
 		}
 	}
 
@@ -631,13 +586,13 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		if (!BlockFits(currentBlock))
 		{
-			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
+			coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
 			currentBlock.RotateYClockWise();
 		}
 		else
 		{
-			AudioSystem.Instance.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
+			coroutineManager.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
 			Vector3 offset = RenderSystem.startOffset                    + currentBlock.Pos.ToVector() +
 			                 new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
@@ -655,7 +610,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 					break;
 			}
 
-			RenderSystem.Instance.RefreshCurrentBlock();
+			RenderSystem.RefreshCurrentBlock();
 		}
 	}
 
@@ -686,7 +641,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		if (!BlockFits(currentBlock))
 		{
-			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
+			coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
 			switch (CameraSystem.viewAngle)
 			{
@@ -713,7 +668,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		}
 		else
 		{
-			AudioSystem.Instance.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
+			coroutineManager.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
 			Vector3 offset = RenderSystem.startOffset                    + currentBlock.Pos.ToVector() +
 			                 new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
@@ -748,7 +703,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 					break;
 			}
 
-			RenderSystem.Instance.RefreshCurrentBlock();
+			RenderSystem.RefreshCurrentBlock();
 		}
 	}
 
@@ -779,7 +734,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		if (!BlockFits(currentBlock))
 		{
-			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
+			coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
 			switch (CameraSystem.viewAngle)
 			{
@@ -806,7 +761,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		}
 		else
 		{
-			AudioSystem.Instance.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
+			coroutineManager.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
 			Vector3 offset = RenderSystem.startOffset                    + currentBlock.Pos.ToVector() +
 			                 new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
@@ -841,7 +796,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 					break;
 			}
 
-			RenderSystem.Instance.RefreshCurrentBlock();
+			RenderSystem.RefreshCurrentBlock();
 		}
 	}
 
@@ -855,15 +810,15 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		if (!BlockFits(currentBlock))
 		{
-			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
+			coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
 			currentBlock.Move(Coord.Right[CameraSystem.viewAngle]);
 		}
 		else
 		{
-			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.MOVE);
+			coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.MOVE);
 
-			RenderSystem.Instance.RefreshCurrentBlock();
+			RenderSystem.RefreshCurrentBlock();
 		}
 	}
 
@@ -873,15 +828,15 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		if (!BlockFits(currentBlock))
 		{
-			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
+			coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
 			currentBlock.Move(Coord.Left[CameraSystem.viewAngle]);
 		}
 		else
 		{
-			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.MOVE);
+			coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.MOVE);
 
-			RenderSystem.Instance.RefreshCurrentBlock();
+			RenderSystem.RefreshCurrentBlock();
 		}
 	}
 
@@ -891,15 +846,15 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		if (!BlockFits(currentBlock))
 		{
-			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
+			coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
 			currentBlock.Move(Coord.Backward[CameraSystem.viewAngle]);
 		}
 		else
 		{
-			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.MOVE);
+			coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.MOVE);
 
-			RenderSystem.Instance.RefreshCurrentBlock();
+			RenderSystem.RefreshCurrentBlock();
 		}
 	}
 
@@ -909,15 +864,15 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		if (!BlockFits(currentBlock))
 		{
-			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
+			coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.UNAVAILABLE);
 
 			currentBlock.Move(Coord.Forward[CameraSystem.viewAngle]);
 		}
 		else
 		{
-			AudioSystem.Instance.BurstSFX(AudioSystem.SFX_VALUE.MOVE);
+			coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.MOVE);
 
-			RenderSystem.Instance.RefreshCurrentBlock();
+			RenderSystem.RefreshCurrentBlock();
 		}
 	}
 
@@ -932,7 +887,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 			return;
 		}
 
-		AudioSystem.Instance.PlayRandomSFX(AudioSystem.SFX_VALUE.DROP1, AudioSystem.SFX_VALUE.DROP2);
+		coroutineManager.PlayRandomSFX(AudioSystem.SFX_VALUE.DROP1, AudioSystem.SFX_VALUE.DROP2);
 
 		currentBlock.Move(Coord.Up);
 		EffectSystem.DropEffect();
@@ -951,13 +906,12 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		if (num > 2)
 		{
-			AudioSystem.Instance.PlayRandomSFX(AudioSystem.SFX_VALUE.HARD_DROP1, AudioSystem.SFX_VALUE.HARD_DROP5);
-
-			StartCoroutine(CameraSystem.Instance.Shake());
+			coroutineManager.PlayRandomSFX(AudioSystem.SFX_VALUE.HARD_DROP1, AudioSystem.SFX_VALUE.HARD_DROP5);
+			coroutineManager.CameraShake();
 		}
 		else
 		{
-			AudioSystem.Instance.PlayRandomSFX(AudioSystem.SFX_VALUE.DROP1, AudioSystem.SFX_VALUE.DROP2);
+			coroutineManager.PlayRandomSFX(AudioSystem.SFX_VALUE.DROP1, AudioSystem.SFX_VALUE.DROP2);
 		}
 
 		currentBlock.Move(Coord.Up);

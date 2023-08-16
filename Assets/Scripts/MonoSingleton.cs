@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public abstract class MonoSingleton<T> : MonoBehaviour where T : MonoBehaviour
@@ -9,44 +10,58 @@ public abstract class MonoSingleton<T> : MonoBehaviour where T : MonoBehaviour
 	{
 		get
 		{
-			if (shuttingDown)
+			if (instance == null && !shuttingDown)
 			{
-				Debug.Log("[Singleton] instance " + typeof(T) + " already deleted. Returning null.");
+				instance = FindObjectOfType(typeof(T)) as T;
 
-				return null;
-			}
-
-			lock (locker)
-			{
-				if (instance == null)
+				if (!instance)
 				{
-					instance = (T)FindObjectOfType(typeof(T));
-
-					if (instance == null)
-					{
-						GameObject temp = new(typeof(T).ToString());
-						instance = temp.AddComponent<T>();
-					}
-
-					DontDestroyOnLoad(instance);
+					GameObject obj = new(nameof(T));
+					instance = obj.AddComponent<T>();
+					DontDestroyOnLoad(obj);
 				}
 			}
 
 			return instance;
+			// if (shuttingDown)
+			// {
+			// 	Debug.Log("[Singleton] instance " + typeof(T) + " already deleted. Returning null.");
+			//
+			// 	return null;
+			// }
+			//
+			// lock (locker)
+			// {
+			// 	if (instance == null)
+			// 	{
+			// 		instance = (T)FindObjectOfType(typeof(T));
+			//
+			// 		if (instance == null)
+			// 		{
+			// 			GameObject temp = new(typeof(T).ToString());
+			// 			instance = temp.AddComponent<T>();
+			// 		}
+			//
+			// 		DontDestroyOnLoad(instance);
+			// 	}
+			// }
+			//
+			// return instance;
 		}
 	}
 
 	protected delegate void Callback();
 
+	private void Awake()
+	{
+		if (instance != null)
+			instance = this as T;
+	}
+
 	private void OnApplicationQuit()
 	{
 		shuttingDown = true;
+		if (instance != null) Destroy(instance.gameObject);
+		instance = null;
 	}
-
-	private void OnDestroy()
-	{
-		shuttingDown = true;
-	}
-
-	public abstract void Init();
 }

@@ -289,7 +289,7 @@ public sealed class RenderSystem : MonoSingleton<RenderSystem>
 	public static           Vector3          startOffset;
 	private static readonly int              gradientColor = Shader.PropertyToID("_GradientColor");
 
-	public override void Init()
+	public void Init()
 	{
 		blockMeshList  = new List<PrefabMesh>();
 		shadowMeshList = new List<PrefabMesh>();
@@ -466,7 +466,7 @@ public sealed class RenderSystem : MonoSingleton<RenderSystem>
 		}
 	}
 
-	public void RefreshCurrentBlock()
+	public static void RefreshCurrentBlock()
 	{
 		RenderCurrentBlock();
 		RenderShadowBlock();

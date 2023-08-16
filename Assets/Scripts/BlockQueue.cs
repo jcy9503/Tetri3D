@@ -18,13 +18,13 @@ public class BlockQueue
 	{
 		if (GameManager.testBlock)
 		{
-			Block returnBlock = BlockFactory.BlockSpawn((int)GameManager.Instance.testBlockType);
+			Block returnBlock = blockCreateFunc.BlockSpawn((int)GameManager.Instance.testBlockType);
 			return returnBlock;
 		}
 
 		Random randValue = new();
 
-		return BlockFactory.BlockSpawn(randValue.Next(0, blockTypeNum));
+		return blockCreateFunc.BlockSpawn(randValue.Next(0, blockTypeNum));
 	}
 
 	public void SaveBlockReset()

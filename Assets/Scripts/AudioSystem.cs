@@ -119,7 +119,7 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 		}
 	}
 
-	public override void Init()
+	public void Init()
 	{
 		bgmSource = new List<AudioClip>();
 
@@ -144,7 +144,7 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 			sfxSource.Add(Resources.Load<AudioClip>(path));
 		}
 
-		GameManager.Instance.coroutineManager.PlayMainBGM();
+		GameManager.Instance.coroutineManager.PlayMainMenuBGM();
 	}
 
 	public static void RandomPlayBGM()

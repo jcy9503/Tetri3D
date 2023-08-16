@@ -16,7 +16,7 @@ public sealed class EnvironmentSystem : MonoSingleton<EnvironmentSystem>
 	private static readonly int             speed = Shader.PropertyToID("_Speed");
 	private static readonly int             phase = Animator.StringToHash("Phase");
 
-	public override void Init()
+	public void Init()
 	{
 		cubeTrs       = new List<Transform>();
 		cubesFloating = new List<bool>();

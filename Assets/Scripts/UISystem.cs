@@ -6,8 +6,8 @@ using TMPro;
 
 public sealed class UISystem : MonoSingleton<UISystem>
 {
-	private Dictionary<string, CanvasGroup>                screenObjects;
-	private Dictionary<string, Dictionary<string, Button>> buttons;
+	public Dictionary<string, CanvasGroup>                screenObjects;
+	public Dictionary<string, Dictionary<string, Button>> buttons;
 	private readonly string[] SCREEN_STR =
 	{
 		"MainScreen",
@@ -90,9 +90,16 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		"ButtonOption",
 		"ButtonHelp",
 	};
-	private const OPTION_PANEL curPanel = OPTION_PANEL.SOUND;
-	private       Slider       sliderBGM;
-	private       Slider       sliderSFX;
+	private readonly string[] OPTION_PANEL_STR =
+	{
+		"SoundButtons",
+		"GraphicButtons",
+		"ControlButtons",
+	};
+	private static OPTION_PANEL     curPanel = OPTION_PANEL.SOUND;
+	private        List<GameObject> optionButtons;
+	private        Slider           sliderBGM;
+	private        Slider           sliderSFX;
 
 #endregion
 
@@ -118,7 +125,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 #endregion
 
-	public override void Init()
+	public void Init()
 	{
 		screenObjects = new Dictionary<string, CanvasGroup>();
 
@@ -154,11 +161,24 @@ public sealed class UISystem : MonoSingleton<UISystem>
 			buttons[SCREEN_STR[0]].Add(MAIN_BTN_STR[i], mainObjs.Dequeue().GetComponent<Button>());
 		}
 
-		buttons[SCREEN_STR[0]][MAIN_BTN_STR[0]].onClick.AddListener(UIGameStart);
-		//mainButtons["Option"].onClick.AddListener(Option);
-		//mainButtons["LeaderBoard"].onClick.AddListener(LeaderBoard);
+		buttons[SCREEN_STR[0]][MAIN_BTN_STR[0]].onClick
+		                                       .AddListener(GameManager.Instance.coroutineManager
+		                                                               .OnClickMainMenuGameStart);
+		buttons[SCREEN_STR[0]][MAIN_BTN_STR[1]].onClick
+		                                       .AddListener(GameManager.Instance.coroutineManager
+		                                                               .OnClickMainMenuOption);
+		buttons[SCREEN_STR[0]][MAIN_BTN_STR[2]].onClick
+		                                       .AddListener(GameManager.Instance.coroutineManager
+		                                                               .OnClickMainMenuLeaderBoard);
 		buttons[SCREEN_STR[0]][MAIN_BTN_STR[3]].onClick.AddListener(() => mainQuitPanel.gameObject.SetActive(true));
+
+#if UNITY_EDITOR
+		buttons[SCREEN_STR[0]][MAIN_BTN_STR[4]].onClick
+		                                       .AddListener(() => UnityEditor.EditorApplication.isPlaying = false);
+#else
 		buttons[SCREEN_STR[0]][MAIN_BTN_STR[4]].onClick.AddListener(Application.Quit);
+#endif
+
 		buttons[SCREEN_STR[0]][MAIN_BTN_STR[5]].onClick.AddListener(() => mainQuitPanel.gameObject.SetActive(false));
 
 		mainQuitPanel.SetActive(false);
@@ -182,7 +202,8 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		}
 
 		buttons[SCREEN_STR[1]][PLAY_BTN_STR[0]].onClick.AddListener(GamePause);
-		buttons[SCREEN_STR[1]][PLAY_BTN_STR[1]].onClick.AddListener(PauseHome);
+		buttons[SCREEN_STR[1]][PLAY_BTN_STR[1]].onClick
+		                                       .AddListener(GameManager.Instance.coroutineManager.OnClickPauseHome);
 		buttons[SCREEN_STR[1]][PLAY_BTN_STR[2]].onClick.AddListener(PauseResume);
 		buttons[SCREEN_STR[1]][PLAY_BTN_STR[3]].onClick.AddListener(GameManager.Instance.MoveBlockLeft);
 		buttons[SCREEN_STR[1]][PLAY_BTN_STR[4]].onClick.AddListener(GameManager.Instance.MoveBlockRight);
@@ -218,29 +239,37 @@ public sealed class UISystem : MonoSingleton<UISystem>
 			buttons[SCREEN_STR[2]].Add(OPTION_BTN_STR[i], GameObject.Find(OPTION_BTN_STR[i]).GetComponent<Button>());
 		}
 
+		optionButtons = new List<GameObject>();
+
+		for (int i = 0; i < OPTION_PANEL_STR.Length; ++i)
+		{
+			optionButtons.Add(GameObject.Find(OPTION_PANEL_STR[i]));
+		}
+
 		buttons[SCREEN_STR[2]][OPTION_BTN_STR[0]].onClick.AddListener(() => OptionPanel(OPTION_PANEL.SOUND));
 		buttons[SCREEN_STR[2]][OPTION_BTN_STR[1]].onClick.AddListener(() => OptionPanel(OPTION_PANEL.GRAPHIC));
 		buttons[SCREEN_STR[2]][OPTION_BTN_STR[2]].onClick.AddListener(() => OptionPanel(OPTION_PANEL.CONTROL));
-		buttons[SCREEN_STR[2]][OPTION_BTN_STR[3]].onClick.AddListener(OptionHome);
-		//buttons["OptionButtons"]["ColorToggle"].onClick.AddListener();
-		//buttons["OptionButtons"]["ButtonToggle"].onClick.AddListener();
-		//buttons["OptionButtons"]["ButtonHelp"].onClick.AddListener();
+		buttons[SCREEN_STR[2]][OPTION_BTN_STR[3]].onClick
+		                                         .AddListener(GameManager.Instance.coroutineManager.OnClickOptionHome);
+		buttons[SCREEN_STR[2]][OPTION_BTN_STR[4]].onClick.AddListener(OptionColor);
+		buttons[SCREEN_STR[2]][OPTION_BTN_STR[5]].onClick.AddListener(OptionButton);
+		buttons[SCREEN_STR[2]][OPTION_BTN_STR[6]].onClick.AddListener(OptionHelp);
 
 		sliderBGM = GameObject.Find("BGMSlider").GetComponent<Slider>();
 		sliderSFX = GameObject.Find("SFXSlider").GetComponent<Slider>();
 
 		sliderBGM.minValue = 0f;
-		sliderBGM.maxValue = AudioSystem.BGMVolume;
+		sliderBGM.value = sliderBGM.maxValue = AudioSystem.BGMVolume;
 
 		sliderSFX.minValue = 0f;
-		sliderSFX.maxValue = AudioSystem.SFXVolume;
+		sliderSFX.value = sliderSFX.maxValue = AudioSystem.SFXVolume;
 
 		sliderBGM.onValueChanged.AddListener(delegate { OptionSlider(SLIDER_TYPE.BGM); });
 		sliderSFX.onValueChanged.AddListener(delegate { OptionSlider(SLIDER_TYPE.SFX); });
 
-		buttons[SCREEN_STR[2]][OPTION_BTN_STR[1]].gameObject.SetActive(false);
-		buttons[SCREEN_STR[2]][OPTION_BTN_STR[2]].gameObject.SetActive(false);
-		buttons[SCREEN_STR[2]][OPTION_BTN_STR[0]].gameObject.SetActive(true);
+		optionButtons[0].SetActive(true);
+		optionButtons[1].SetActive(false);
+		optionButtons[2].SetActive(false);
 
 		screenObjects[SCREEN_STR[2]].gameObject.SetActive(false);
 	}
@@ -254,6 +283,10 @@ public sealed class UISystem : MonoSingleton<UISystem>
 			buttons[SCREEN_STR[3]].Add(LEADER_BOARD_BTN_STR[i],
 			                           GameObject.Find(LEADER_BOARD_BTN_STR[i]).GetComponent<Button>());
 		}
+
+		buttons[SCREEN_STR[3]][LEADER_BOARD_BTN_STR[0]].onClick
+		                                               .AddListener(GameManager.Instance.coroutineManager
+			                                                           .OnClickLeaderBoardHome);
 
 		leaderBoardContents = GameObject.Find("LeaderBoardContents");
 
@@ -270,27 +303,18 @@ public sealed class UISystem : MonoSingleton<UISystem>
 			                           GameObject.Find(GAME_OVER_BTN_STR[i]).GetComponent<Button>());
 		}
 
+		buttons[SCREEN_STR[4]][GAME_OVER_BTN_STR[0]].onClick
+		                                            .AddListener(GameManager.Instance.coroutineManager
+		                                                                    .OnClickGameOverHome);
+		buttons[SCREEN_STR[4]][GAME_OVER_BTN_STR[1]].onClick
+		                                            .AddListener(GameManager.Instance.coroutineManager
+		                                                                    .OnClickGameOverReplay);
+
 		gameOverScoreTxt      = GameObject.Find("GameOverScore").GetComponent<TMP_Text>();
 		gameOverScoreTxt.text = "00000000";
 
 		screenObjects[SCREEN_STR[4]].gameObject.SetActive(false);
 	}
-
-#region Main Functions
-
-	private void UIGameStart()
-	{
-		StartCoroutine(FadeOutIn("MainScreen", "PlayScreen", 1f));
-
-		GameManager.Instance.GameStart();
-	}
-
-	private IEnumerator MainOption()
-	{
-		yield return StartCoroutine(FadeOutIn("MainScreen", "OptionScreen", 3f));
-	}
-
-#endregion
 
 #region Play Functions
 
@@ -299,7 +323,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		playObjects["ControlScreen"].SetActive(false);
 		playObjects["PauseScreen"].SetActive(true);
 
-		GameManager.Instance.GamePause();
+		GameManager.Instance.coroutineManager.GamePause();
 	}
 
 	private void PauseResume()
@@ -307,17 +331,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		playObjects["PauseScreen"].SetActive(false);
 		playObjects["ControlScreen"].SetActive(true);
 
-		GameManager.Instance.GameResume();
-	}
-
-	private void PauseHome()
-	{
-		StartCoroutine(FadeOutIn("PlayScreen", "MainScreen", 1f));
-		StartCoroutine(GameManager.Instance.GameHome());
-	}
-
-	private void UIReplayOnClick()
-	{
+		GameManager.Instance.coroutineManager.GameResume();
 	}
 
 	public void ScoreUpdate(int score)
@@ -329,21 +343,19 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 #region Option Functions
 
-	private void OptionHome()
-	{
-		StartCoroutine(FadeOutIn("OptionScreen", "MainScreen", 3f));
-	}
-
 	private void OptionPanel(OPTION_PANEL panel)
 	{
+		GameManager.Instance.coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.CLICK);
+		
 		if (curPanel == panel) return;
 
 		for (int i = 0; i < 3; ++i)
 		{
-			buttons["OptionScreen"][OPTION_BTN_STR[i]].gameObject.SetActive(false);
+			optionButtons[i].SetActive(false);
 		}
 
-		buttons["OptionScreen"][OPTION_BTN_STR[(int)panel]].gameObject.SetActive(true);
+		optionButtons[(int)panel].SetActive(true);
+		curPanel = panel;
 	}
 
 	private void OptionSlider(SLIDER_TYPE type)
@@ -360,6 +372,18 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 				break;
 		}
+	}
+
+	private void OptionColor()
+	{
+	}
+
+	private void OptionButton()
+	{
+	}
+
+	private void OptionHelp()
+	{
 	}
 
 #endregion
@@ -401,75 +425,6 @@ public sealed class UISystem : MonoSingleton<UISystem>
 	public void PrintScore(int score)
 	{
 		gameOverScoreTxt.text = score.ToString("D8");
-	}
-
-#endregion
-
-#region General Functions
-
-	public IEnumerator FadeOutIn(string fadeOut, string fadeIn, float acc)
-	{
-		const float alphaUnit = 0.02f;
-		float       alphaSet  = 1f;
-
-	#region Fade Out
-
-		foreach (KeyValuePair<string, Button> button in buttons[fadeOut])
-		{
-			button.Value.interactable = false;
-		}
-
-		while (alphaSet >= 0f)
-		{
-			alphaSet                     -= alphaUnit * acc;
-			screenObjects[fadeOut].alpha =  alphaSet;
-
-			yield return new WaitForSeconds(0.01f);
-		}
-
-		screenObjects[fadeOut].alpha = 0f;
-
-	#endregion
-
-	#region Fade In
-
-		screenObjects[fadeIn].gameObject.SetActive(true);
-		screenObjects[fadeIn].alpha = 0f;
-
-		foreach (KeyValuePair<string, Button> button in buttons[fadeIn])
-		{
-			button.Value.interactable = false;
-		}
-
-		alphaSet = 0f;
-
-		while (alphaSet <= 1f)
-		{
-			alphaSet                    += alphaUnit * acc;
-			screenObjects[fadeIn].alpha =  alphaSet;
-
-			yield return new WaitForSeconds(0.01f);
-		}
-
-		screenObjects[fadeIn].alpha = 1f;
-
-	#endregion
-
-	#region After
-
-		foreach (KeyValuePair<string, Button> button in buttons[fadeOut])
-		{
-			button.Value.interactable = true;
-		}
-
-		screenObjects[fadeOut].gameObject.SetActive(false);
-		
-		foreach (KeyValuePair<string, Button> button in buttons[fadeIn])
-		{
-			button.Value.interactable = true;
-		}
-
-	#endregion
 	}
 
 #endregion
