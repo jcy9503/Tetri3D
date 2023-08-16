@@ -115,15 +115,6 @@ public class CoroutineManager : MonoBehaviour
 
 #region UI
 
-	public void OnClickPauseHome()
-	{
-		BurstSFX(AudioSystem.SFX_VALUE.CLICK);
-
-		StartCoroutine(UIGameHome("PlayScreen"));
-
-		PlayMainMenuBGM();
-	}
-
 	public void OnClickMainMenuGameStart()
 	{
 		BurstSFX(AudioSystem.SFX_VALUE.CLICK);
@@ -144,6 +135,15 @@ public class CoroutineManager : MonoBehaviour
 		BurstSFX(AudioSystem.SFX_VALUE.CLICK);
 
 		StartCoroutine(UIFadeOutIn("MainScreen", "LeaderBoardScreen", 3f));
+	}
+	
+	public void OnClickPauseHome()
+	{
+		BurstSFX(AudioSystem.SFX_VALUE.CLICK);
+
+		StartCoroutine(UIGameHome("PlayScreen"));
+
+		PlayMainMenuBGM();
 	}
 
 	public void OnClickOptionHome()
