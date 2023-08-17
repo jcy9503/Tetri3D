@@ -152,5 +152,6 @@ public class Block : IBlock
 		Z,
 		S,
 		COUNT,
+		DEFAULT,
 	}
 }

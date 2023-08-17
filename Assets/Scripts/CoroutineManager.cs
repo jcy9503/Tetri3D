@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
@@ -8,7 +9,7 @@ public class CoroutineManager : MonoBehaviour
 {
 #region Variable
 
-	public delegate         void      Callback();
+	private delegate        void      Callback();
 	private const           float     logicDownInterval = 1f;
 	private const           float     audioTimeUnit     = 0.03f;
 	private const           float     audioBGMInterval  = 3f;
@@ -17,7 +18,8 @@ public class CoroutineManager : MonoBehaviour
 	private const           float     cameraLerpAmount  = 0.01f;
 	private const           float     cameraShakeAmount = 0.5f;
 	private const           float     cameraShakeTime   = 0.2f;
-	private static readonly int       speed             = Shader.PropertyToID("_Speed");
+	private                 Coroutine animFunc;
+	private static readonly int       speed = Shader.PropertyToID("_Speed");
 
 #endregion
 
@@ -120,13 +122,13 @@ public class CoroutineManager : MonoBehaviour
 		BurstSFX(AudioSystem.SFX_VALUE.CLICK);
 
 		StartCoroutine(UIGameHome("PlayScreen"));
-
-		PlayMainMenuBGM();
 	}
 
 	public void OnClickMainMenuGameStart()
 	{
 		BurstSFX(AudioSystem.SFX_VALUE.CLICK);
+
+        UISystem.Instance.playObjects["PauseScreen"].SetActive(false);
 
 		StartCoroutine(UIFadeOutIn("MainScreen", "PlayScreen", 1f));
 		GameStart();
@@ -182,6 +184,11 @@ public class CoroutineManager : MonoBehaviour
 		StartCoroutine(AudioRepeatGameBGM());
 	}
 
+	public void UpdateScore(UISystem.SCORE_TYPE type)
+	{
+		StartCoroutine(UIScoreAnimation(type));
+	}
+
 #region Effect
 
 	public void GridEffect(List<int> cleared)
@@ -196,6 +203,20 @@ public class CoroutineManager : MonoBehaviour
 
 #endregion
 
+#region Environment
+
+	public void StartAnimChange()
+	{
+		animFunc = StartCoroutine(EnvAnimChange());
+	}
+
+	public void StopAnimChange()
+	{
+		StopCoroutine(animFunc);
+	}
+
+#endregion
+
 #endregion
 
 #endregion
@@ -206,10 +227,10 @@ public class CoroutineManager : MonoBehaviour
 
 	private void StartLogic()
 	{
+		GameManager.isPause = false;
+		
 		StartCoroutine(LogicBlockDown());
 		StartCoroutine(CameraAngleCalculate());
-
-		GameManager.isPause = false;
 	}
 
 	private static IEnumerator LogicBlockDown()
@@ -226,10 +247,10 @@ public class CoroutineManager : MonoBehaviour
 				break;
 			}
 
+			yield return new WaitForSeconds(logicDownInterval);
+			
 			GameManager.Instance.MoveBlockDown();
 			EffectSystem.Instance.MoveRotationEffect();
-
-			yield return new WaitForSeconds(logicDownInterval);
 		}
 	}
 
@@ -279,7 +300,7 @@ public class CoroutineManager : MonoBehaviour
 		{
 			if (GameManager.isGameOver) break;
 
-			if (GameManager.isPause) continue;
+			if (GameManager.isPause) yield return null;
 
 			if (!AudioSystem.BGMPlaying)
 				AudioSystem.RandomPlayBGM();
@@ -344,43 +365,44 @@ public class CoroutineManager : MonoBehaviour
 
 	private static IEnumerator CameraGameStart(Callback func)
 	{
-		float elapsedTime = 0f;
+		float  elapsedTime = 0f;
+		Camera cam         = CameraSystem.mainCamera;
 
 		do
 		{
 			elapsedTime += Time.deltaTime;
 
-			CameraSystem.mainCamera.transform.rotation = Quaternion.Slerp(CameraSystem.mainCamera.transform.rotation,
-			                                                              Quaternion.LookRotation(
-			                                                               new Vector3(0f, -6.35f, 23.7f)),
-			                                                              elapsedTime);
+			cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation,
+			                                          Quaternion.LookRotation(new Vector3(0f, -6.35f, 23.7f)),
+			                                          elapsedTime);
 
-			yield return new WaitForSeconds(0.05f);
-		} while (Quaternion.Angle(Quaternion.LookRotation(Vector3.right),
+			yield return null;
+		} while (Quaternion.Angle(cam.transform.rotation,
 		                          Quaternion.LookRotation(new Vector3(0f, -6.35f, 23.7f))) > 1f);
 
-		CameraSystem.mainCamera.transform.rotation = CameraSystem.initRotation;
+		cam.transform.rotation = CameraSystem.initRotation;
 
 		func.Invoke();
 	}
 
 	private static IEnumerator CameraMainMenu()
 	{
-		const float unit        = 0.05f;
-		float       elapsedTime = 0f;
+		float  elapsedTime = 0f;
+		Camera cam         = CameraSystem.mainCamera;
 
-		while (elapsedTime < 2f)
+		do
 		{
-			CameraSystem.mainCamera.transform.rotation = Quaternion.Slerp(CameraSystem.mainCamera.transform.rotation,
-			                                                              Quaternion.LookRotation(Vector3.right),
-			                                                              cameraLerpAmount);
+			elapsedTime += Time.deltaTime;
 
-			yield return new WaitForSeconds(unit);
+			cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation,
+			                                          Quaternion.LookRotation(Vector3.right),
+			                                          elapsedTime);
 
-			elapsedTime += unit;
-		}
+			yield return null;
+		} while (Quaternion.Angle(cam.transform.rotation,
+		                          Quaternion.LookRotation(Vector3.right)) > 1f);
 
-		CameraSystem.mainCamera.transform.rotation = Quaternion.LookRotation(Vector3.right);
+		cam.transform.rotation = Quaternion.LookRotation(Vector3.right);
 	}
 
 	private static IEnumerator CameraAngleCalculate()
@@ -533,6 +555,72 @@ public class CoroutineManager : MonoBehaviour
 		GameManager.Instance.Reset();
 	}
 
+	private IEnumerator UIScoreAnimation(UISystem.SCORE_TYPE type)
+	{
+		int scoreTp = 0;
+		int save    = 0;
+		int step    = 1;
+		int digit = type == UISystem.SCORE_TYPE.PLAY
+			? GameManager.totalScore.ToString().Length
+			: 8;
+		const float scoreSpacing = 0.6f;
+		string      scoreOption  = $"<mspace={scoreSpacing}em>";
+
+		const float interval  = 0.005f;
+		const int   loopCount = 5;
+		int         score     = GameManager.totalScore;
+		TMP_Text    tmpScore  = UISystem.Instance.scoreTxt[(int)type];
+
+		tmpScore.text = scoreOption + 0.ToString($"D{digit}");
+
+		yield return new WaitForSeconds(type == UISystem.SCORE_TYPE.GAME_OVER ? 1.3f : 0f);
+
+		while (scoreTp < score)
+		{
+			int loop = loopCount;
+
+			while (loop-- >= 0)
+			{
+				int tp = scoreTp;
+
+				while (step * 10 > tp + save)
+				{
+					yield return new WaitForSeconds(interval);
+
+					tmpScore.text =  scoreOption + (tp + save).ToString($"D{digit}");
+					tp            += step;
+				}
+			}
+
+			while (score % (step * 10) > scoreTp + save)
+			{
+				yield return new WaitForSeconds(interval);
+
+				tmpScore.text =  scoreOption + (scoreTp + save).ToString($"D{digit}");
+				scoreTp       += step;
+			}
+
+			yield return new WaitForSeconds(interval);
+
+			save          += scoreTp;
+			tmpScore.text =  scoreOption + save.ToString($"D{digit}");
+			step          *= 10;
+			scoreTp       =  step;
+		}
+
+		string strOrg = score.ToString();
+
+		if (type == UISystem.SCORE_TYPE.PLAY) yield break;
+
+		for (int i = 0; i < 200; ++i)
+		{
+			tmpScore.text     = $"<mspace={scoreSpacing + 0.0005 * i}em>" + strOrg;
+			tmpScore.fontSize = 40f                                       + 0.04f * i;
+
+			yield return new WaitForSeconds(0.001f);
+		}
+	}
+
 #endregion
 
 #region Effect
@@ -611,7 +699,7 @@ public class CoroutineManager : MonoBehaviour
 			mesh.renderer.material.SetFloat(EffectSystem.smoothness, 0f);
 		}
 
-		StartCoroutine(EffectGridDestruction());
+		yield return StartCoroutine(EffectGridDestruction());
 
 		float alphaSet = 1.01f;
 
@@ -699,6 +787,75 @@ public class CoroutineManager : MonoBehaviour
 		{
 			Destroy(mesh.Obj);
 		}
+	}
+
+#endregion
+
+#region Environment
+
+	private IEnumerator EnvAnimChange()
+	{
+		while (true)
+		{
+			if (GameManager.isGameOver) break;
+
+			int randObj = Random.Range(0, EnvironmentSystem.cubeAnimators.Length);
+			int randInt = Random.Range(0, EnvironmentSystem.totalAnim);
+
+			if (!EnvironmentSystem.cubesFloating[randObj])
+			{
+				EnvironmentSystem.cubeAnimators[randObj].SetInteger(EnvironmentSystem.phase, randInt);
+			}
+
+			yield return new WaitForSeconds(1f);
+		}
+	}
+
+	private static IEnumerator EnvAnimStart()
+	{
+		const float speedUp = 0.01f;
+
+		while (EnvironmentSystem.cubeAnimators[0].speed < 1f)
+		{
+			foreach (Animator anim in EnvironmentSystem.cubeAnimators)
+			{
+				anim.speed = Mathf.Clamp(anim.speed + speedUp, 0f, 1f);
+			}
+
+			yield return new WaitForSeconds(0.1f);
+		}
+
+		foreach (Animator anim in EnvironmentSystem.cubeAnimators)
+		{
+			anim.speed = 1f;
+		}
+	}
+
+	private IEnumerator EnvAnimStop()
+	{
+		const float slowDown = 0.01f;
+
+		while (EnvironmentSystem.cubeAnimators[0].speed > 0f)
+		{
+			foreach (Animator anim in EnvironmentSystem.cubeAnimators)
+			{
+				anim.speed = Mathf.Clamp(anim.speed - slowDown, 0f, 1f);
+			}
+
+			yield return new WaitForSeconds(0.1f);
+		}
+
+		foreach (Animator anim in EnvironmentSystem.cubeAnimators)
+		{
+			anim.speed = 0f;
+		}
+	}
+
+	private IEnumerator EnvAnimRestart()
+	{
+		yield return StartCoroutine(EnvAnimStart());
+
+		StartCoroutine(EnvAnimChange());
 	}
 
 #endregion

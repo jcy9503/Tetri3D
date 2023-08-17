@@ -1,5 +1,3 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -8,32 +6,31 @@ public sealed class EnvironmentSystem : MonoSingleton<EnvironmentSystem>
 {
 	private                 GameObject      cubeMeshes;
 	private                 List<Transform> cubeTrs;
-	private                 Animator[]      cubeAnimators;
+	public static           Animator[]      cubeAnimators;
 	private                 Renderer[]      cubeRenderers;
-	private                 List<bool>      cubesFloating;
-	private const           int             totalAnim = 4;
-	public                  Coroutine       animFunc;
+	public static           List<bool>      cubesFloating;
+	public const            int             totalAnim = 4;
 	private static readonly int             speed = Shader.PropertyToID("_Speed");
-	private static readonly int             phase = Animator.StringToHash("Phase");
+	public static readonly  int             phase = Animator.StringToHash("Phase");
 
 	public void Init()
 	{
 		cubeTrs       = new List<Transform>();
 		cubesFloating = new List<bool>();
-		
+
 		cubeMeshes    = GameObject.Find("Meshes");
 		cubeAnimators = cubeMeshes.GetComponentsInChildren<Animator>();
 		cubeRenderers = cubeMeshes.GetComponentsInChildren<Renderer>();
-		
+
 		Transform[] trs = cubeMeshes.GetComponentsInChildren<Transform>();
-		
+
 		foreach (Transform tr in trs)
 		{
 			if (tr.parent != cubeMeshes.transform) continue;
 
 			cubeTrs.Add(tr);
 		}
-		
+
 		foreach (Transform tr in cubeTrs)
 		{
 			float randFloat = Random.Range(0f, 360f);
@@ -44,7 +41,7 @@ public sealed class EnvironmentSystem : MonoSingleton<EnvironmentSystem>
 
 			tr.localScale = Vector3.one * randFloat;
 		}
-		
+
 		foreach (Animator animator in cubeAnimators)
 		{
 			float randFloat = Random.Range(0.3f, 1f);
@@ -64,77 +61,12 @@ public sealed class EnvironmentSystem : MonoSingleton<EnvironmentSystem>
 				cubesFloating.Add(false);
 			}
 		}
-		
+
 		foreach (Renderer rd in cubeRenderers)
 		{
 			rd.material.SetFloat(speed, Random.Range(0.15f, 0.45f));
 		}
 
-		animFunc = StartCoroutine(AnimChange());
-	}
-
-	private IEnumerator AnimChange()
-	{
-		while (true)
-		{
-			if (GameManager.isGameOver) break;
-
-			int randObj = Random.Range(0, cubeAnimators.Length);
-			int randInt = Random.Range(0, totalAnim);
-
-			if (!cubesFloating[randObj])
-			{
-				cubeAnimators[randObj].SetInteger(phase, randInt);
-			}
-
-			yield return new WaitForSeconds(1.0f);
-		}
-	}
-
-	public IEnumerator AnimStop()
-	{
-		const float slowDown = 0.01f;
-
-		while (cubeAnimators[0].speed > 0f)
-		{
-			foreach (Animator anim in cubeAnimators)
-			{
-				anim.speed = Mathf.Clamp(anim.speed - slowDown, 0f, 1f);
-			}
-
-			yield return new WaitForSeconds(0.1f);
-		}
-
-		foreach (Animator anim in cubeAnimators)
-		{
-			anim.speed = 0f;
-		}
-	}
-
-	private IEnumerator AnimStart()
-	{
-		const float speedUp = 0.01f;
-
-		while (cubeAnimators[0].speed < 1f)
-		{
-			foreach (Animator anim in cubeAnimators)
-			{
-				anim.speed = Mathf.Clamp(anim.speed + speedUp, 0f, 1f);
-			}
-
-			yield return new WaitForSeconds(0.1f);
-		}
-
-		foreach (Animator anim in cubeAnimators)
-		{
-			anim.speed = 1f;
-		}
-	}
-
-	private IEnumerator AnimRestart()
-	{
-		yield return StartCoroutine(AnimStart());
-
-		StartCoroutine(AnimChange());
+		GameManager.Instance.coroutineManager.StartAnimChange();
 	}
 }

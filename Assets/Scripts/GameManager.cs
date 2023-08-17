@@ -25,7 +25,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 	private const    int   baseScore  = 100;
 	private readonly int[] scoreValue = { 1, 2, 4, 8 };
 	private static   int   comboIdx;
-	private static   int   totalScore;
+	public static    int   totalScore;
 
 	// Test
 	public static  bool             testGrid;
@@ -84,8 +84,8 @@ public sealed class GameManager : MonoSingleton<GameManager>
 #endif
 		coroutineManager = GameObject.Find("CoroutineManager").GetComponent<CoroutineManager>();
 
-		BlockQueue   = new BlockQueue();
-		currentBlock = BlockQueue.GetAndUpdateBlock();
+		BlockQueue   = new BlockQueue(testBlockType);
+		currentBlock = BlockQueue.GetAndUpdateBlock(testBlockType);
 
 		CameraSystem.Instance.Init();
 		RenderSystem.Instance.Init();
@@ -112,9 +112,9 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 	public void Init()
 	{
-		isGameOver       = false;
-		isPause          = true;
-		totalScore       = 0;
+		isGameOver = false;
+		isPause    = true;
+		totalScore = 0;
 
 		testHeight    = 7;
 		testFieldSize = 10;
@@ -272,7 +272,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 			grid = new GameGrid(ref gridSize, blockSize);
 		}
 
-		currentBlock = BlockQueue.GetAndUpdateBlock();
+		currentBlock = BlockQueue.GetAndUpdateBlock(testBlockType);
 		BlockQueue.SaveBlockReset();
 		canSave = true;
 
@@ -328,17 +328,17 @@ public sealed class GameManager : MonoSingleton<GameManager>
 			isPause    = true;
 			isGameOver = true;
 
-			UISystem.Instance.PrintScore(totalScore);
+			coroutineManager.UpdateScore(UISystem.SCORE_TYPE.GAME_OVER);
 
 			coroutineManager.PitchDownBGM(0.2f);
 			coroutineManager.GameOverEffect();
-			StartCoroutine(EnvironmentSystem.Instance.AnimStop());
+			coroutineManager.StopAnimChange();
 			coroutineManager.GameOverScreen();
 		}
 		else
 		{
 			canSave      = true;
-			currentBlock = BlockQueue.GetAndUpdateBlock();
+			currentBlock = BlockQueue.GetAndUpdateBlock(testBlockType);
 			RenderSystem.RefreshCurrentBlock();
 		}
 	}
@@ -353,7 +353,8 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		}
 
 		totalScore += baseScore * (int)Mathf.Pow(scoreValue[cleared - 1], ++comboIdx);
-		UISystem.Instance.ScoreUpdate(totalScore);
+
+		coroutineManager.UpdateScore(UISystem.SCORE_TYPE.PLAY);
 	}
 
 #endregion

@@ -17,6 +17,14 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		"GameOverScreen",
 	};
 
+	public enum SCORE_TYPE
+	{
+		PLAY = 0,
+		GAME_OVER,
+	}
+
+	public TMP_Text[] scoreTxt;
+
 #region Main Screen
 
 	private readonly string[] MAIN_BTN_STR =
@@ -34,7 +42,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 #region Play Screen
 
-	private Dictionary<string, GameObject> playObjects;
+	public Dictionary<string, GameObject> playObjects;
 	private readonly string[] PLAY_OBJ_STR =
 	{
 		"PauseScreen",
@@ -58,7 +66,6 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		"RotateZ",
 		"RotateZInv",
 	};
-	private TMP_Text   playScoreTxt;
 	private GameObject pauseScreen;
 
 #endregion
@@ -121,7 +128,6 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		"GameOverHome",
 		"GameOverRetry",
 	};
-	private TMP_Text gameOverScoreTxt;
 
 #endregion
 
@@ -135,6 +141,12 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		}
 
 		buttons = new Dictionary<string, Dictionary<string, Button>>();
+
+		scoreTxt = new[]
+		{
+			GameObject.Find("GameScoreTxt").GetComponent<TMP_Text>(),
+			GameObject.Find("GameOverScore").GetComponent<TMP_Text>()
+		};
 
 		InitMainScreen();
 		InitPlayScreen();
@@ -216,8 +228,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		buttons[SCREEN_STR[1]][PLAY_BTN_STR[11]].onClick.AddListener(GameManager.Instance.RotateBlockZ);
 		buttons[SCREEN_STR[1]][PLAY_BTN_STR[12]].onClick.AddListener(GameManager.Instance.RotateBlockZInv);
 
-		playScoreTxt      = GameObject.Find("GameScoreTxt").GetComponent<TMP_Text>();
-		playScoreTxt.text = "0";
+		scoreTxt[0].text = "0";
 
 #if UNITY_EDITOR || UNITY_STANDALONE_WIN
 
@@ -259,10 +270,10 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		sliderSFX = GameObject.Find("SFXSlider").GetComponent<Slider>();
 
 		sliderBGM.minValue = 0f;
-		sliderBGM.value = sliderBGM.maxValue = AudioSystem.BGMVolume;
+		sliderBGM.value    = sliderBGM.maxValue = AudioSystem.BGMVolume;
 
 		sliderSFX.minValue = 0f;
-		sliderSFX.value = sliderSFX.maxValue = AudioSystem.SFXVolume;
+		sliderSFX.value    = sliderSFX.maxValue = AudioSystem.SFXVolume;
 
 		sliderBGM.onValueChanged.AddListener(delegate { OptionSlider(SLIDER_TYPE.BGM); });
 		sliderSFX.onValueChanged.AddListener(delegate { OptionSlider(SLIDER_TYPE.SFX); });
@@ -310,8 +321,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		                                            .AddListener(GameManager.Instance.coroutineManager
 		                                                                    .OnClickGameOverReplay);
 
-		gameOverScoreTxt      = GameObject.Find("GameOverScore").GetComponent<TMP_Text>();
-		gameOverScoreTxt.text = "00000000";
+		scoreTxt[1].text = "00000000";
 
 		screenObjects[SCREEN_STR[4]].gameObject.SetActive(false);
 	}
@@ -334,11 +344,6 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		GameManager.Instance.coroutineManager.GameResume();
 	}
 
-	public void ScoreUpdate(int score)
-	{
-		playScoreTxt.text = score.ToString("D8");
-	}
-
 #endregion
 
 #region Option Functions
@@ -346,7 +351,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 	private void OptionPanel(OPTION_PANEL panel)
 	{
 		GameManager.Instance.coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.CLICK);
-		
+
 		if (curPanel == panel) return;
 
 		for (int i = 0; i < 3; ++i)
@@ -421,11 +426,6 @@ public sealed class UISystem : MonoSingleton<UISystem>
 #endregion
 
 #region Game Over Functions
-
-	public void PrintScore(int score)
-	{
-		gameOverScoreTxt.text = score.ToString("D8");
-	}
 
 #endregion
 }

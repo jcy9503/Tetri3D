@@ -2,10 +2,10 @@ using Random = System.Random;
 
 public class BlockQueue
 {
-	public BlockQueue()
+	public BlockQueue(Block.BLOCK_TYPE type)
 	{
 		blockCreateFunc = new BlockFactory();
-		nextBlock       = RandomBlock();
+		nextBlock       = RandomBlock(type);
 		saveBlock       = null;
 	}
 
@@ -14,11 +14,11 @@ public class BlockQueue
 	private        Block        nextBlock;
 	private        Block        saveBlock;
 
-	private static Block RandomBlock()
+	private static Block RandomBlock(Block.BLOCK_TYPE type)
 	{
 		if (GameManager.testBlock)
 		{
-			Block returnBlock = blockCreateFunc.BlockSpawn((int)GameManager.Instance.testBlockType);
+			Block returnBlock = blockCreateFunc.BlockSpawn((int)type);
 			return returnBlock;
 		}
 
@@ -38,7 +38,7 @@ public class BlockQueue
 		{
 			saveBlock = save;
 
-			return GetAndUpdateBlock();
+			return GetAndUpdateBlock(Block.BLOCK_TYPE.DEFAULT);
 		}
 
 		saveBlock.Reset();
@@ -49,13 +49,13 @@ public class BlockQueue
 		return block;
 	}
 
-	public Block GetAndUpdateBlock()
+	public Block GetAndUpdateBlock(Block.BLOCK_TYPE type)
 	{
 		Block block = nextBlock;
 
 		if (GameManager.testBlock)
 		{
-			nextBlock = RandomBlock();
+			nextBlock = RandomBlock(type);
 			block.Reset();
 
 			return block;
@@ -63,7 +63,7 @@ public class BlockQueue
 
 		do
 		{
-			nextBlock = RandomBlock();
+			nextBlock = RandomBlock(Block.BLOCK_TYPE.DEFAULT);
 		} while (block.GetId() == nextBlock.GetId());
 
 		block.Reset();
