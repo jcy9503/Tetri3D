@@ -328,7 +328,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 			isPause    = true;
 			isGameOver = true;
 
-			coroutineManager.UpdateScore(UISystem.SCORE_TYPE.GAME_OVER);
+			coroutineManager.UpdateScore(UISystem.SCORE_TYPE.GAME_OVER, totalScore);
 
 			coroutineManager.PitchDownBGM(0.2f);
 			coroutineManager.GameOverEffect();
@@ -352,9 +352,10 @@ public sealed class GameManager : MonoSingleton<GameManager>
 			return;
 		}
 
-		totalScore += baseScore * (int)Mathf.Pow(scoreValue[cleared - 1], ++comboIdx);
+		int addScore = baseScore * (int)Mathf.Pow(scoreValue[cleared - 1], ++comboIdx);
+		totalScore += addScore;
 
-		coroutineManager.UpdateScore(UISystem.SCORE_TYPE.PLAY);
+		coroutineManager.UpdateScore(UISystem.SCORE_TYPE.PLAY, addScore);
 	}
 
 #endregion

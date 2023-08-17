@@ -9,7 +9,8 @@ public class CoroutineManager : MonoBehaviour
 {
 #region Variable
 
-	private delegate        void      Callback();
+	private delegate void Callback();
+
 	private const           float     logicDownInterval = 1f;
 	private const           float     audioTimeUnit     = 0.03f;
 	private const           float     audioBGMInterval  = 3f;
@@ -126,9 +127,10 @@ public class CoroutineManager : MonoBehaviour
 
 	public void OnClickMainMenuGameStart()
 	{
+		GameManager.isGameOver = false;
 		BurstSFX(AudioSystem.SFX_VALUE.CLICK);
 
-        UISystem.Instance.playObjects["PauseScreen"].SetActive(false);
+		UISystem.Instance.playObjects["PauseScreen"].SetActive(false);
 
 		StartCoroutine(UIFadeOutIn("MainScreen", "PlayScreen", 1f));
 		GameStart();
@@ -184,9 +186,9 @@ public class CoroutineManager : MonoBehaviour
 		StartCoroutine(AudioRepeatGameBGM());
 	}
 
-	public void UpdateScore(UISystem.SCORE_TYPE type)
+	public void UpdateScore(UISystem.SCORE_TYPE type, int addScore)
 	{
-		StartCoroutine(UIScoreAnimation(type));
+		StartCoroutine(UIScoreAnimation(type, addScore));
 	}
 
 #region Effect
@@ -228,7 +230,7 @@ public class CoroutineManager : MonoBehaviour
 	private void StartLogic()
 	{
 		GameManager.isPause = false;
-		
+
 		StartCoroutine(LogicBlockDown());
 		StartCoroutine(CameraAngleCalculate());
 	}
@@ -248,7 +250,7 @@ public class CoroutineManager : MonoBehaviour
 			}
 
 			yield return new WaitForSeconds(logicDownInterval);
-			
+
 			GameManager.Instance.MoveBlockDown();
 			EffectSystem.Instance.MoveRotationEffect();
 		}
@@ -261,7 +263,7 @@ public class CoroutineManager : MonoBehaviour
 	private static IEnumerator AudioPlayMainMenuBGM()
 	{
 		AudioSystem.audioSourceBGM.clip = AudioSystem.bgmSource[0];
-		AudioSystem.BGMVolume           = AudioSystem.BGMVolume;
+		AudioSystem.BGMVolume           = AudioSystem.baseBGMVolume;
 		AudioSystem.BGMPitch            = 1f;
 		AudioSystem.audioSourceBGM.Play();
 
@@ -322,12 +324,14 @@ public class CoroutineManager : MonoBehaviour
 
 		AudioSystem.BGMVolume = 0f;
 		AudioSystem.audioSourceBGM.Pause();
+		AudioSystem.BGMVolume = AudioSystem.baseBGMVolume;
 	}
 
 	private static IEnumerator AudioFadeInBGM(float acc)
 	{
 		const float volUp = 0.01f;
 
+		AudioSystem.BGMVolume = 0f;
 		AudioSystem.audioSourceBGM.Play();
 
 		while (AudioSystem.BGMVolume < AudioSystem.baseBGMVolume)
@@ -545,6 +549,7 @@ public class CoroutineManager : MonoBehaviour
 	private IEnumerator UIGameHome(string curScreen)
 	{
 		StartCoroutine(UIFadeOutIn(curScreen, "MainScreen", 1f));
+		StartCoroutine(AudioFadeOutBGM(3f));
 
 		yield return StartCoroutine(CameraMainMenu());
 
@@ -555,23 +560,21 @@ public class CoroutineManager : MonoBehaviour
 		GameManager.Instance.Reset();
 	}
 
-	private IEnumerator UIScoreAnimation(UISystem.SCORE_TYPE type)
+	private static IEnumerator UIScoreAnimation(UISystem.SCORE_TYPE type, int addScore)
 	{
-		int scoreTp = 0;
+		int scoreTp = GameManager.totalScore - addScore;
 		int save    = 0;
 		int step    = 1;
 		int digit = type == UISystem.SCORE_TYPE.PLAY
 			? GameManager.totalScore.ToString().Length
 			: 8;
-		const float scoreSpacing = 0.6f;
-		string      scoreOption  = $"<mspace={scoreSpacing}em>";
 
-		const float interval  = 0.005f;
-		const int   loopCount = 5;
-		int         score     = GameManager.totalScore;
-		TMP_Text    tmpScore  = UISystem.Instance.scoreTxt[(int)type];
+		const float interval     = 0.005f;
+		const int   loopCount    = 5;
+		int         score        = GameManager.totalScore;
+		TMP_Text    tmpScore     = UISystem.Instance.scoreTxt[(int)type];
 
-		tmpScore.text = scoreOption + 0.ToString($"D{digit}");
+		tmpScore.text = 0.ToString($"D{digit}");
 
 		yield return new WaitForSeconds(type == UISystem.SCORE_TYPE.GAME_OVER ? 1.3f : 0f);
 
@@ -587,7 +590,7 @@ public class CoroutineManager : MonoBehaviour
 				{
 					yield return new WaitForSeconds(interval);
 
-					tmpScore.text =  scoreOption + (tp + save).ToString($"D{digit}");
+					tmpScore.text =  (tp + save).ToString($"D{digit}");
 					tp            += step;
 				}
 			}
@@ -596,26 +599,26 @@ public class CoroutineManager : MonoBehaviour
 			{
 				yield return new WaitForSeconds(interval);
 
-				tmpScore.text =  scoreOption + (scoreTp + save).ToString($"D{digit}");
+				tmpScore.text =  (scoreTp + save).ToString($"D{digit}");
 				scoreTp       += step;
 			}
 
 			yield return new WaitForSeconds(interval);
 
 			save          += scoreTp;
-			tmpScore.text =  scoreOption + save.ToString($"D{digit}");
+			tmpScore.text =  save.ToString($"D{digit}");
 			step          *= 10;
 			scoreTp       =  step;
 		}
 
-		string strOrg = score.ToString();
-
 		if (type == UISystem.SCORE_TYPE.PLAY) yield break;
+        
+		float  orgSize = tmpScore.fontSize;
 
 		for (int i = 0; i < 200; ++i)
 		{
-			tmpScore.text     = $"<mspace={scoreSpacing + 0.0005 * i}em>" + strOrg;
-			tmpScore.fontSize = 40f                                       + 0.04f * i;
+			tmpScore.characterSpacing += 0.0005f * i;
+			tmpScore.fontSize         =  orgSize + 0.04f * i;
 
 			yield return new WaitForSeconds(0.001f);
 		}
@@ -793,7 +796,7 @@ public class CoroutineManager : MonoBehaviour
 
 #region Environment
 
-	private IEnumerator EnvAnimChange()
+	private static IEnumerator EnvAnimChange()
 	{
 		while (true)
 		{

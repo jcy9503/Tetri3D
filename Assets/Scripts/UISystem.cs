@@ -368,12 +368,12 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		switch (type)
 		{
 			case SLIDER_TYPE.BGM:
-				AudioSystem.BGMVolume = sliderBGM.value;
+				AudioSystem.baseBGMVolume = AudioSystem.BGMVolume = sliderBGM.value;
 
 				break;
 
 			case SLIDER_TYPE.SFX:
-				AudioSystem.SFXVolume = sliderSFX.value;
+				AudioSystem.baseSFXVolume = AudioSystem.SFXVolume = sliderSFX.value;
 
 				break;
 		}

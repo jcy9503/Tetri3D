@@ -81,7 +81,7 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 	public static  List<AudioClip> bgmSource;
 	public static  List<AudioClip> sfxSource;
 	public static  int             sfxIdx;
-	public const   float           baseBGMVolume = 0.2f;
+	public static  float           baseBGMVolume = 0.2f;
 	private static float           bgmVolume     = baseBGMVolume;
 	public static float BGMVolume
 	{
@@ -103,8 +103,8 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 		}
 	}
 	public static  bool  BGMPlaying => audioSourceBGM.isPlaying;
-	public const   float bgmVolumeAdj = 3f;
-	private static float sfxVolume    = 1f;
+	public static  float baseSFXVolume = 1f;
+	private static float sfxVolume     = 1f;
 	public static float SFXVolume
 	{
 		get => sfxVolume;
