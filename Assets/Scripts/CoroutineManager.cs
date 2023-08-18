@@ -9,8 +9,7 @@ public class CoroutineManager : MonoBehaviour
 {
 #region Variable
 
-	private delegate void Callback();
-
+	private delegate        void      Callback();
 	private const           float     logicDownInterval = 1f;
 	private const           float     audioTimeUnit     = 0.03f;
 	private const           float     audioBGMInterval  = 3f;
@@ -49,9 +48,6 @@ public class CoroutineManager : MonoBehaviour
 
 		BurstSFX(AudioSystem.SFX_VALUE.RESUME);
 		ResumeBGM(audioBGMInterval);
-
-		StartCoroutine(LogicBlockDown());
-		StartCoroutine(CameraAngleCalculate());
 	}
 
 #endregion
@@ -104,14 +100,14 @@ public class CoroutineManager : MonoBehaviour
 	{
 		CameraSystem.isShaking = true;
 
-		StartCoroutine(CameraShaking());
+		StartCoroutine(CameraShaking(() => CameraSystem.isShaking = false));
 	}
 
 	public void CameraFOVEffect()
 	{
 		GameManager.isPause = true;
 
-		StartCoroutine(CameraFOVAudioEffect());
+		StartCoroutine(CameraFOVAudioEffect(() => GameManager.isPause = false));
 	}
 
 #endregion
@@ -123,6 +119,8 @@ public class CoroutineManager : MonoBehaviour
 		BurstSFX(AudioSystem.SFX_VALUE.CLICK);
 
 		StartCoroutine(UIGameHome("PlayScreen"));
+
+		PlayMainMenuBGM();
 	}
 
 	public void OnClickMainMenuGameStart()
@@ -148,6 +146,7 @@ public class CoroutineManager : MonoBehaviour
 		BurstSFX(AudioSystem.SFX_VALUE.CLICK);
 
 		StartCoroutine(UIFadeOutIn("MainScreen", "LeaderBoardScreen", 3f));
+		UISystem.Instance.BoardReset();
 	}
 
 	public void OnClickOptionHome()
@@ -172,17 +171,24 @@ public class CoroutineManager : MonoBehaviour
 	public void OnClickGameOverHome()
 	{
 		BurstSFX(AudioSystem.SFX_VALUE.CLICK);
+		
+		UISystem.Instance.GameOverSave();
 
 		StartCoroutine(UIGameHome("GameOverScreen"));
-
-		PlayMainMenuBGM();
 	}
 
-	public void OnClickGameOverReplay()
+	public void OnClickGameOverRetry()
 	{
 		BurstSFX(AudioSystem.SFX_VALUE.CLICK);
-
+		
+		UISystem.Instance.GameOverSave();
+		
+		StartCoroutine(UIFadeOutIn("GameOverScreen", "PlayScreen", 10f));
+		
 		GameManager.Instance.Reset();
+		
+		StartLogic();
+		
 		StartCoroutine(AudioRepeatGameBGM());
 	}
 
@@ -237,17 +243,12 @@ public class CoroutineManager : MonoBehaviour
 
 	private static IEnumerator LogicBlockDown()
 	{
-		while (!GameManager.isPause)
+		while (!GameManager.isGameOver)
 		{
+			if (GameManager.isPause)
+				yield return null;
+
 			RenderSystem.RenderCurrentBlock();
-
-			if (!GameManager.grid.IsPlaneEmpty(0))
-			{
-				GameManager.isGameOver = true;
-				GameManager.isPause    = true;
-
-				break;
-			}
 
 			yield return new WaitForSeconds(logicDownInterval);
 
@@ -411,9 +412,10 @@ public class CoroutineManager : MonoBehaviour
 
 	private static IEnumerator CameraAngleCalculate()
 	{
-		while (!GameManager.isPause)
+		while (!GameManager.isGameOver)
 		{
-			if (GameManager.isGameOver) break;
+			if (GameManager.isPause)
+				yield return null;
 
 			CameraSystem.viewAngle = CameraSystem.rotatorTr.rotation.eulerAngles.y switch
 			{
@@ -427,7 +429,7 @@ public class CoroutineManager : MonoBehaviour
 		}
 	}
 
-	private static IEnumerator CameraShaking()
+	private static IEnumerator CameraShaking(Callback func)
 	{
 		float timer = 0;
 
@@ -438,9 +440,11 @@ public class CoroutineManager : MonoBehaviour
 
 			yield return null;
 		}
+
+		func.Invoke();
 	}
 
-	private static IEnumerator CameraFOVAudioEffect()
+	private static IEnumerator CameraFOVAudioEffect(Callback func)
 	{
 		const float target      = 120f;
 		float       originFOV   = CameraSystem.mainCamera.fieldOfView;
@@ -468,6 +472,8 @@ public class CoroutineManager : MonoBehaviour
 		CameraSystem.mainCamera.fieldOfView = originFOV;
 
 		CameraFOVEffectClear(originSpeed);
+
+		func.Invoke();
 	}
 
 	private static void CameraFOVEffectClear(float originSpeed)
@@ -562,17 +568,17 @@ public class CoroutineManager : MonoBehaviour
 
 	private static IEnumerator UIScoreAnimation(UISystem.SCORE_TYPE type, int addScore)
 	{
-		int scoreTp = GameManager.totalScore - addScore;
-		int save    = 0;
-		int step    = 1;
-		int digit = type == UISystem.SCORE_TYPE.PLAY
-			? GameManager.totalScore.ToString().Length
-			: 8;
+		int scoreTp = type == UISystem.SCORE_TYPE.PLAY
+			? GameManager.totalScore - addScore
+			: 0;
+		int save  = 0;
+		int step  = 1;
+		int digit = GameManager.totalScore.ToString().Length;
 
-		const float interval     = 0.005f;
-		const int   loopCount    = 5;
-		int         score        = GameManager.totalScore;
-		TMP_Text    tmpScore     = UISystem.Instance.scoreTxt[(int)type];
+		const float interval  = 0.005f;
+		int         loopCount = type == UISystem.SCORE_TYPE.PLAY ? 2 : 5;
+		int         score     = GameManager.totalScore;
+		TMP_Text    tmpScore  = UISystem.Instance.scoreTxt[(int)type];
 
 		tmpScore.text = 0.ToString($"D{digit}");
 
@@ -612,12 +618,12 @@ public class CoroutineManager : MonoBehaviour
 		}
 
 		if (type == UISystem.SCORE_TYPE.PLAY) yield break;
-        
-		float  orgSize = tmpScore.fontSize;
+
+		float orgSize = tmpScore.fontSize;
 
 		for (int i = 0; i < 200; ++i)
 		{
-			tmpScore.characterSpacing += 0.0005f * i;
+			tmpScore.characterSpacing += 0.0001f * i;
 			tmpScore.fontSize         =  orgSize + 0.04f * i;
 
 			yield return new WaitForSeconds(0.001f);
@@ -644,13 +650,16 @@ public class CoroutineManager : MonoBehaviour
 			                       Random.Range(-range, range)));
 		}
 
+		float elapsedTime = 0f;
+
 		while ((GameManager.grid.Mesh.Obj.transform.position - targetLoc).magnitude > 0.001f)
 		{
-			alphaSet -= 0.01f;
-			glowSet  -= EffectSystem.lineGlowPower * 0.01f;
+			alphaSet    -= 0.01f;
+			glowSet     -= EffectSystem.lineGlowPower * 0.01f;
+			elapsedTime += Time.deltaTime;
 
 			GameManager.grid.Mesh.Obj.transform.position =
-				Vector3.Lerp(GameManager.grid.Mesh.Obj.transform.position, targetLoc, 0.02f);
+				Vector3.Lerp(GameManager.grid.Mesh.Obj.transform.position, targetLoc, elapsedTime);
 			GameManager.grid.Mesh.MRenderer.material.SetFloat(EffectSystem.alpha, Mathf.Max(alphaSet, 0f));
 
 			for (int i = 0; i < EffectSystem.lineMeshes.Count; ++i)

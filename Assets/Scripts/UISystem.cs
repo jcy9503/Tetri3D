@@ -1,7 +1,7 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEditor;
 using TMPro;
 
 public sealed class UISystem : MonoSingleton<UISystem>
@@ -128,6 +128,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		"GameOverHome",
 		"GameOverRetry",
 	};
+	private TMP_InputField scoreInput;
 
 #endregion
 
@@ -186,7 +187,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 #if UNITY_EDITOR
 		buttons[SCREEN_STR[0]][MAIN_BTN_STR[4]].onClick
-		                                       .AddListener(() => UnityEditor.EditorApplication.isPlaying = false);
+		                                       .AddListener(GameTerminate);
 #else
 		buttons[SCREEN_STR[0]][MAIN_BTN_STR[4]].onClick.AddListener(Application.Quit);
 #endif
@@ -319,12 +320,29 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		                                                                    .OnClickGameOverHome);
 		buttons[SCREEN_STR[4]][GAME_OVER_BTN_STR[1]].onClick
 		                                            .AddListener(GameManager.Instance.coroutineManager
-		                                                                    .OnClickGameOverReplay);
+		                                                                    .OnClickGameOverRetry);
 
-		scoreTxt[1].text = "00000000";
+		scoreTxt[1].text = "0";
+
+		scoreInput = GameObject.Find("ScoreInput").GetComponent<TMP_InputField>();
 
 		screenObjects[SCREEN_STR[4]].gameObject.SetActive(false);
 	}
+
+#region Main Menu Functions
+
+	private static void GameTerminate()
+	{
+		GameManager.Instance.StoreData();
+
+#if UNITY_EDITOR
+		EditorApplication.isPlaying = false;
+#else
+		Application.Quit();
+#endif
+	}
+
+#endregion
 
 #region Play Functions
 
@@ -395,37 +413,37 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 #region Leader Board Functions
 
-	private void AddBoard(string user, int score)
+	public void BoardReset()
 	{
-		GameObject board = Resources.Load<GameObject>(LEADER_BOARD_ASSET);
-		board.transform.parent                                    = leaderBoardContents.transform;
-		board.transform.GetChild(1).GetComponent<TMP_Text>().text = user;
-		board.transform.GetChild(2).GetComponent<TMP_Text>().text = score.ToString();
-
-		bool isBetween = false;
-
 		for (int i = 0; i < leaderBoardContents.transform.childCount; ++i)
 		{
-			string originScore = leaderBoardContents.transform.GetChild(i).GetChild(2).GetComponent<TMP_Text>().text;
-
-			if (score <= int.Parse(originScore)) continue;
-
-			board.transform.parent = leaderBoardContents.transform;
-			board.transform.SetSiblingIndex(i);
-			isBetween = true;
-
-			break;
+			Destroy(leaderBoardContents.transform.GetChild(i).gameObject);
 		}
 
-		if (!isBetween)
+		for (int i = 0; i < GameManager.saveData.list.Count; ++i)
 		{
-			board.transform.parent = leaderBoardContents.transform;
+			AddBoard(GameManager.saveData.list[i].name, GameManager.saveData.list[i].score, i < 3);
 		}
+	}
+
+	private void AddBoard(string user, int score, bool star)
+	{
+		GameObject board = Resources.Load<GameObject>(LEADER_BOARD_ASSET);
+		board.transform.SetParent(leaderBoardContents.transform);
+		if(!star) board.transform.GetChild(0).gameObject.SetActive(false);
+		board.transform.GetChild(1).GetComponent<TMP_Text>().text = user;
+		board.transform.GetChild(2).GetComponent<TMP_Text>().text = score.ToString();
 	}
 
 #endregion
 
 #region Game Over Functions
 
+	public void GameOverSave()
+	{
+		SaveData save = new(GameManager.totalScore, scoreInput.text);
+		GameManager.Instance.AddData(save);
+	}
+	
 #endregion
 }

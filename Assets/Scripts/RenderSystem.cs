@@ -303,6 +303,7 @@ public sealed class RenderSystem : MonoSingleton<RenderSystem>
 
 	public static void RenderLine()
 	{
+		lineMeshList.Clear();
 		const float width = 0.05f;
 
 		LineMesh mesh01 = new("Line", gridObj,

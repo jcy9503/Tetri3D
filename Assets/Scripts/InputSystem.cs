@@ -179,20 +179,22 @@ public sealed class InputSystem : MonoSingleton<InputSystem>
 
 	#endregion
 
-		return 0;
-	}
+	#region Game Control
 
-	public void PauseUnpause(LogicFunc func)
-	{
 		if (Input.GetKey(KeyCode.Escape) && !keyUsing[(int)KEY_VALUE.ESC])
 		{
-			func.Invoke();
 			keyUsing[(int)KEY_VALUE.ESC] = true;
 			StartCoroutine(KeyRewind((int)KEY_VALUE.ESC));
+
+			return GameManager.INPUT_CONTROL.PAUSE;
 		}
+
+	#endregion
+
+		return GameManager.INPUT_CONTROL.DEFAULT;
 	}
 
-	private void InputMouse()
+	public void InputMouse()
 	{
 		if (Input.GetMouseButtonDown(0) && !CameraSystem.isShaking)
 		{

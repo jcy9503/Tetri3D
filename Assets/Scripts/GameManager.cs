@@ -6,8 +6,8 @@
  */
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEngine;
 
@@ -22,16 +22,17 @@ public sealed class GameManager : MonoSingleton<GameManager>
 	public        CoroutineManager coroutineManager;
 
 	// Score
-	private const    int   baseScore  = 100;
-	private readonly int[] scoreValue = { 1, 2, 4, 8 };
-	private static   int   comboIdx;
-	public static    int   totalScore;
+	private const    int       baseScore  = 100;
+	private readonly int[]     scoreValue = { 1, 2, 4, 8 };
+	private static   int       comboIdx;
+	public static    int       totalScore;
+	public static    SaveInfo  saveData;
+	public           TextAsset textAsset;
 
 	// Test
 	public static  bool             testGrid;
 	public static  bool             gridRegen;
 	public static  bool             testBlock;
-	private static bool             loaded;
 	public static  int              testHeight;
 	private static int              testFieldSize;
 	public         Block.BLOCK_TYPE testBlockType;
@@ -71,9 +72,15 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 	private void Start()
 	{
-		loaded = false;
-
 		Init();
+		if (!File.Exists(Application.dataPath + "Resources/SaveData.json"))
+		{
+			saveData = new SaveInfo();
+			string saveStr = JsonUtility.ToJson(saveData);
+			File.WriteAllText(Application.dataPath + "/Resources/SaveData.json", saveStr);
+		}
+		textAsset = Resources.Load<TextAsset>("SaveData");
+		ReadData();
 
 #if UNITY_EDITOR
 		grid = new GameGrid(ref gridSize, blockSize);
@@ -106,11 +113,9 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		EnvironmentSystem.Instance.Init();
 		InputSystem.Instance.Init();
 		UISystem.Instance.Init();
-
-		loaded = true;
 	}
 
-	public void Init()
+	private void Init()
 	{
 		isGameOver = false;
 		isPause    = true;
@@ -140,17 +145,12 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 	private void Update()
 	{
-		if (!loaded) return;
-
-		if (isGameOver)
-		{
-			Terminate();
-		}
-
 		INPUT_CONTROL control = InputSystem.Instance.InputWindows();
 
 		if (!isPause)
 		{
+			InputSystem.Instance.InputMouse();
+
 			switch (control)
 			{
 				case INPUT_CONTROL.DEFAULT:
@@ -279,11 +279,6 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		RenderSystem.Instance.Reset();
 	}
 
-	private static void Terminate()
-	{
-		isPause = true;
-	}
-
 	public static bool BlockFits(Block block)
 	{
 		return block.TilePositions().All(coord => grid.IsEmpty(coord.X, coord.Y, coord.Z));
@@ -329,7 +324,6 @@ public sealed class GameManager : MonoSingleton<GameManager>
 			isGameOver = true;
 
 			coroutineManager.UpdateScore(UISystem.SCORE_TYPE.GAME_OVER, totalScore);
-
 			coroutineManager.PitchDownBGM(0.2f);
 			coroutineManager.GameOverEffect();
 			coroutineManager.StopAnimChange();
@@ -919,6 +913,34 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		currentBlock.Move(Coord.Up);
 		EffectSystem.DropEffect();
 		PlaceBlock();
+	}
+
+#endregion
+
+#region Save Data
+
+	private void ReadData()
+	{
+		saveData = JsonUtility.FromJson<SaveInfo>(textAsset.text);
+		SortData();
+	}
+
+	public void AddData(SaveData info)
+	{
+		saveData.list.Add(info);
+		SortData();
+	}
+
+	public void StoreData()
+	{
+		SortData();
+		string saveStr = JsonUtility.ToJson(saveData);
+		File.WriteAllText(Application.dataPath + "/Resources/SaveData.json", saveStr);
+	}
+
+	private static void SortData()
+	{
+		saveData.list.Sort();
 	}
 
 #endregion
