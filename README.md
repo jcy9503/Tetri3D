@@ -1,4 +1,4 @@
-﻿# Tetri3D Unity ECS Project
+﻿# Tetri3D Unity Project
       
 ***
 <center><img src="https://avatars.githubusercontent.com/u/16358105?v=4" height="100"/></center>   
