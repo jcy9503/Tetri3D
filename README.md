@@ -1,7 +1,5 @@
-﻿# Tetri3D Unity ECS Project
-
-It's ported project of [Tetris3D project](https://github.com/jcy9503/Tetris3D) of my team 1Y3T.   
-This project uses Entity-Component-System (a.k.a. _ECS_) which is in Unity Data-Oriented-Technology-Stack (a.k.a. _DOTS_)   
+﻿# Tetri3D Unity Project
+      
 ***
 <center><img src="https://avatars.githubusercontent.com/u/16358105?v=4" height="100"/></center>   
 
