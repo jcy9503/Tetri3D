@@ -116,6 +116,13 @@ public sealed class UISystem : MonoSingleton<UISystem>
 	{
 		"LeaderBoardHome",
 	};
+
+	private readonly string[] RANK_SPRITE =
+	{
+		"UI/Textures/Medal_1",
+		"UI/Textures/Medal_2",
+		"UI/Textures/Medal_3",
+	};
 	private const string     LEADER_BOARD_ASSET = "UI/Prefabs/Board";
 	private       GameObject leaderBoardContents;
 
@@ -333,7 +340,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 	private static void GameTerminate()
 	{
-		GameManager.Instance.StoreData();
+		GameManager.StoreData();
 
 #if UNITY_EDITOR
 		EditorApplication.isPlaying = false;
@@ -422,17 +429,26 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 		for (int i = 0; i < GameManager.saveData.list.Count; ++i)
 		{
-			AddBoard(GameManager.saveData.list[i].name, GameManager.saveData.list[i].score, i < 3);
+			AddBoard(GameManager.saveData.list[i].name, GameManager.saveData.list[i].score, i);
 		}
 	}
 
-	private void AddBoard(string user, int score, bool star)
+	private void AddBoard(string user, int score, int rank)
 	{
-		GameObject board = Resources.Load<GameObject>(LEADER_BOARD_ASSET);
-		board.transform.SetParent(leaderBoardContents.transform);
-		if(!star) board.transform.GetChild(0).gameObject.SetActive(false);
-		board.transform.GetChild(1).GetComponent<TMP_Text>().text = user;
-		board.transform.GetChild(2).GetComponent<TMP_Text>().text = score.ToString();
+		GameObject board    = Resources.Load<GameObject>(LEADER_BOARD_ASSET);
+		GameObject instance = Instantiate(board, leaderBoardContents.transform, false);
+
+		if (!instance) return;
+
+		if (rank >= 3) instance.transform.GetChild(0).gameObject.SetActive(false);
+		else
+		{
+			instance.transform.GetChild(0).GetComponent<Image>().sprite = Resources.Load<Sprite>(RANK_SPRITE[rank]);
+			instance.transform.GetChild(0).GetChild(0).GetComponent<Image>().sprite = Resources.Load<Sprite>(RANK_SPRITE[rank]);
+		}
+
+		instance.transform.GetChild(1).GetComponent<TMP_Text>().text = user;
+		instance.transform.GetChild(2).GetComponent<TMP_Text>().text = score.ToString();
 	}
 
 #endregion
@@ -441,8 +457,15 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 	public void GameOverSave()
 	{
-		SaveData save = new(GameManager.totalScore, scoreInput.text);
-		GameManager.Instance.AddData(save);
+		scoreInput.text = scoreInput.text.Length switch
+		{
+			0   => "AAA",
+			> 3 => scoreInput.text[..3],
+			_   => scoreInput.text
+		};
+
+		SaveData save = new(GameManager.totalScore, scoreInput.text.ToUpper());
+		GameManager.AddData(save);
 	}
 	
 #endregion

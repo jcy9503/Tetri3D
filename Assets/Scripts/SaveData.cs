@@ -15,9 +15,9 @@ public class SaveData : IComparable
 
     public int CompareTo(object arg)
     {
-        if (score < ((SaveData)arg).score) return -1;
+        if (score < ((SaveData)arg).score) return 1;
 
-        return 1;
+        return -1;
     }
 }
 

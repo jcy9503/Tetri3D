@@ -38,7 +38,7 @@ public sealed class EffectSystem : MonoSingleton<EffectSystem>
 		{
 			if (coord.Y != yMax) continue;
 
-			Vector3 offset = RenderSystem.startOffset + GameManager.currentBlock.Pos.ToVector() + coord.ToVector() +
+			Vector3 offset = RenderSystem.startOffset + GameManager.currentBlock.pos.ToVector() + coord.ToVector() +
 			                 new Vector3(0f, -GameManager.blockSize / 2f, 0f);
 			ParticleRender ptc = new(vfxDrop, offset, effectObj, Quaternion.identity);
 			Destroy(ptc.Obj, 3f);

@@ -412,9 +412,9 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		{
 			coroutineManager.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
-			Vector3 offset = RenderSystem.startOffset                    + currentBlock.Pos.ToVector() +
+			Vector3 offset = RenderSystem.startOffset                    + currentBlock.pos.ToVector() +
 			                 new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
-			                 new Vector3(1f,    -1f,  1f)    * (currentBlock.Size * blockSize * 0.5f);
+			                 new Vector3(1f,    -1f,  1f)    * (currentBlock.size * blockSize * 0.5f);
 
 			Quaternion rotation;
 
@@ -505,9 +505,9 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		{
 			coroutineManager.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
-			Vector3 offset = RenderSystem.startOffset                    + currentBlock.Pos.ToVector() +
+			Vector3 offset = RenderSystem.startOffset                    + currentBlock.pos.ToVector() +
 			                 new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
-			                 new Vector3(1f,    -1f,  1f)    * (currentBlock.Size * blockSize * 0.5f);
+			                 new Vector3(1f,    -1f,  1f)    * (currentBlock.size * blockSize * 0.5f);
 
 			Quaternion rotation;
 
@@ -556,9 +556,9 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		{
 			coroutineManager.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
-			Vector3 offset = RenderSystem.startOffset                    + currentBlock.Pos.ToVector() +
+			Vector3 offset = RenderSystem.startOffset                    + currentBlock.pos.ToVector() +
 			                 new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
-			                 new Vector3(1f,    -1f,  1f)    * (currentBlock.Size * blockSize * 0.5f);
+			                 new Vector3(1f,    -1f,  1f)    * (currentBlock.size * blockSize * 0.5f);
 			Quaternion rotation = Quaternion.Euler(0f, 0f, 180f);
 
 			switch (CameraSystem.viewAngle)
@@ -590,9 +590,9 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		{
 			coroutineManager.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
-			Vector3 offset = RenderSystem.startOffset                    + currentBlock.Pos.ToVector() +
+			Vector3 offset = RenderSystem.startOffset                    + currentBlock.pos.ToVector() +
 			                 new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
-			                 new Vector3(1f,    -1f,  1f)    * (currentBlock.Size * blockSize * 0.5f);
+			                 new Vector3(1f,    -1f,  1f)    * (currentBlock.size * blockSize * 0.5f);
 			Quaternion rotation = Quaternion.identity;
 
 			switch (CameraSystem.viewAngle)
@@ -666,9 +666,9 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		{
 			coroutineManager.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
-			Vector3 offset = RenderSystem.startOffset                    + currentBlock.Pos.ToVector() +
+			Vector3 offset = RenderSystem.startOffset                    + currentBlock.pos.ToVector() +
 			                 new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
-			                 new Vector3(1f,    -1f,  1f)    * (currentBlock.Size * blockSize * 0.5f);
+			                 new Vector3(1f,    -1f,  1f)    * (currentBlock.size * blockSize * 0.5f);
 
 			Quaternion rotation;
 
@@ -759,9 +759,9 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		{
 			coroutineManager.PlayRandomSFX(AudioSystem.SFX_VALUE.ROTATE1, AudioSystem.SFX_VALUE.ROTATE2);
 
-			Vector3 offset = RenderSystem.startOffset                    + currentBlock.Pos.ToVector() +
+			Vector3 offset = RenderSystem.startOffset                    + currentBlock.pos.ToVector() +
 			                 new Vector3(-0.5f, 0.5f, -0.5f) * blockSize +
-			                 new Vector3(1f,    -1f,  1f)    * (currentBlock.Size * blockSize * 0.5f);
+			                 new Vector3(1f,    -1f,  1f)    * (currentBlock.size * blockSize * 0.5f);
 
 			Quaternion rotation;
 
@@ -925,15 +925,15 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		SortData();
 	}
 
-	public void AddData(SaveData info)
+	public static void AddData(SaveData info)
 	{
 		saveData.list.Add(info);
 		SortData();
+		StoreData();
 	}
 
-	public void StoreData()
+	public static void StoreData()
 	{
-		SortData();
 		string saveStr = JsonUtility.ToJson(saveData);
 		File.WriteAllText(Application.dataPath + "/Resources/SaveData.json", saveStr);
 	}

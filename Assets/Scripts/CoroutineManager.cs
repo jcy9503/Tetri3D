@@ -580,7 +580,7 @@ public class CoroutineManager : MonoBehaviour
 		int         score     = GameManager.totalScore;
 		TMP_Text    tmpScore  = UISystem.Instance.scoreTxt[(int)type];
 
-		tmpScore.text = 0.ToString($"D{digit}");
+		tmpScore.text = 0.ToString($"D{digit.ToString()}");
 
 		yield return new WaitForSeconds(type == UISystem.SCORE_TYPE.GAME_OVER ? 1.3f : 0f);
 
@@ -596,7 +596,7 @@ public class CoroutineManager : MonoBehaviour
 				{
 					yield return new WaitForSeconds(interval);
 
-					tmpScore.text =  (tp + save).ToString($"D{digit}");
+					tmpScore.text =  (tp + save).ToString($"D{digit.ToString()}");
 					tp            += step;
 				}
 			}
@@ -605,14 +605,14 @@ public class CoroutineManager : MonoBehaviour
 			{
 				yield return new WaitForSeconds(interval);
 
-				tmpScore.text =  (scoreTp + save).ToString($"D{digit}");
+				tmpScore.text =  (scoreTp + save).ToString($"D{digit.ToString()}");
 				scoreTp       += step;
 			}
 
 			yield return new WaitForSeconds(interval);
 
 			save          += scoreTp;
-			tmpScore.text =  save.ToString($"D{digit}");
+			tmpScore.text =  save.ToString($"D{digit.ToString()}");
 			step          *= 10;
 			scoreTp       =  step;
 		}
@@ -750,7 +750,7 @@ public class CoroutineManager : MonoBehaviour
 				for (int j = 0; j < GameManager.grid.SizeZ; ++j)
 				{
 					Vector3 offset = new(i, -height, j);
-					PrefabMesh mesh = new("Prefabs/Mesh_Block", RenderSystem.startOffset + offset, Block.MatPath[^1],
+					PrefabMesh mesh = new("Prefabs/Mesh_Block", RenderSystem.startOffset + offset, Block.MAT_PATH[^1],
 					                      new Coord(i, height, j), ShadowCastingMode.Off);
 					mesh.renderer.material.SetFloat(EffectSystem.clear,    1f);
 					mesh.renderer.material.SetFloat(EffectSystem.color,    Random.Range(0f, 1f));

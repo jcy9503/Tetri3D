@@ -411,7 +411,7 @@ public sealed class RenderSystem : MonoSingleton<RenderSystem>
 		{
 			Vector3 offset = new(coord.X, -coord.Y, coord.Z);
 			PrefabMesh mesh = new("Prefabs/Mesh_Block", startOffset + offset,
-			                      Block.MatPath[GameManager.currentBlock.GetId()], coord, ShadowCastingMode.Off);
+			                      Block.MAT_PATH[GameManager.currentBlock.GetId()], coord, ShadowCastingMode.Off);
 
 			blockMeshList.Add(mesh);
 			mesh.Obj.transform.parent = blockObj.transform;
@@ -434,7 +434,7 @@ public sealed class RenderSystem : MonoSingleton<RenderSystem>
 		{
 			Vector3 offset = new(coord.X, -coord.Y, coord.Z);
 			PrefabMesh mesh = new("Prefabs/Mesh_Block", startOffset + offset,
-			                      Block.MatPath[0], coord, ShadowCastingMode.Off);
+			                      Block.MAT_PATH[0], coord, ShadowCastingMode.Off);
 
 			shadowMeshList.Add(mesh);
 			mesh.Obj.transform.parent = shadowObj.transform;
@@ -454,7 +454,7 @@ public sealed class RenderSystem : MonoSingleton<RenderSystem>
 					if (GameManager.grid[j, i, k] != 0)
 					{
 						Vector3 offset = new(j, -i, k);
-						PrefabMesh mesh = new("Prefabs/Mesh_Block", startOffset + offset, Block.MatPath[^1],
+						PrefabMesh mesh = new("Prefabs/Mesh_Block", startOffset + offset, Block.MAT_PATH[^1],
 						                      new Coord(j, i, k), ShadowCastingMode.Off);
 						mesh.renderer.material.SetFloat(gradientColor,
 						                                (float)i / (GameManager.grid.SizeY - 1));
