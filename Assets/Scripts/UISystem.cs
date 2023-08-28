@@ -9,6 +9,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 {
 	public Dictionary<string, CanvasGroup>                  screenObjects;
 	public Dictionary<string, Dictionary<string, UIButton>> buttons;
+
 	private readonly string[] SCREEN_STR =
 	{
 		"MainScreen",
@@ -37,6 +38,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		"QuitYes",
 		"QuitNo",
 	};
+
 	private GameObject mainQuitPanel;
 
 #endregion
@@ -44,6 +46,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 #region Play Screen
 
 	public Dictionary<string, GameObject> playObjects;
+
 	private readonly string[] PLAY_OBJ_STR =
 	{
 		"PauseScreen",
@@ -51,6 +54,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		"BlockMove",
 		"BlockRotate",
 	};
+
 	private readonly string[] PLAY_BTN_STR =
 	{
 		"Pause",
@@ -66,7 +70,9 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		"RotateYInv",
 		"RotateZ",
 		"RotateZInv",
+		"BlockSave",
 	};
+
 	private readonly string[] BLOCK_IMG_STR =
 	{
 		"block_null",
@@ -78,6 +84,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		"block_Z",
 		"block_S",
 	};
+
 	private Image      blockNextImg;
 	private Image      blockSaveImg;
 	private GameObject pauseScreen;
@@ -110,19 +117,24 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		"ColorOption",
 		"ButtonOption",
 		"ButtonHelp",
+		"ToastMsg",
 	};
+
 	private readonly string[] OPTION_PANEL_STR =
 	{
 		"SoundButtons",
 		"GraphicButtons",
 		"ControlButtons",
 	};
+
 	private static OPTION_PANEL     curPanel = OPTION_PANEL.SOUND;
 	private        List<GameObject> optionButtons;
 	private        Sprite[]         toggleImg;
 	private        List<int>        toggleValue;
 	private        Slider           sliderBGM;
 	private        Slider           sliderSFX;
+	public         CanvasGroup      controlOptionHelpMsg;
+	public static  bool             toastShow;
 
 #endregion
 
@@ -132,12 +144,14 @@ public sealed class UISystem : MonoSingleton<UISystem>
 	{
 		"LeaderBoardHome",
 	};
+
 	private readonly string[] RANK_SPRITE =
 	{
 		"UI/Textures/Medal_1",
 		"UI/Textures/Medal_2",
 		"UI/Textures/Medal_3",
 	};
+
 	private const string     LEADER_BOARD_ASSET = "UI/Prefabs/Board";
 	private       GameObject leaderBoardContents;
 
@@ -150,6 +164,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		"GameOverHome",
 		"GameOverRetry",
 	};
+
 	private TMP_InputField scoreInput;
 
 #endregion
@@ -232,6 +247,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 			GameManager.Instance.RotateBlockYInv,
 			GameManager.Instance.RotateBlockZ,
 			GameManager.Instance.RotateBlockZInv,
+			GameManager.Instance.SaveBlock,
 		};
 
 		if (PLAY_BTN_STR.Length != callbackFuncs.Length)
@@ -283,6 +299,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 			OptionColor,
 			OptionButton,
 			OptionHelp,
+			OptionHelpToastHide,
 		};
 
 		if (OPTION_BTN_STR.Length != callbackFuncs.Length)
@@ -316,12 +333,16 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		toggleValue = new List<int>
 		{
 			EffectSystem.SaturationValue(), // Color Option
-			0,                              // Control Option
+			1,                              // Control Option
 		};
+
+		controlOptionHelpMsg = GameObject.Find("ToastMsg").GetComponent<CanvasGroup>();
 
 		optionButtons[0].SetActive(true);
 		optionButtons[1].SetActive(false);
 		optionButtons[2].SetActive(false);
+
+		controlOptionHelpMsg.gameObject.SetActive(false);
 
 		screenObjects[SCREEN_STR[2]].gameObject.SetActive(false);
 	}
@@ -342,7 +363,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		for (int i = 0; i < LEADER_BOARD_BTN_STR.Length; ++i)
 		{
 			buttons[SCREEN_STR[3]]
-			   .Add(LEADER_BOARD_BTN_STR[i], new UIButton(LEADER_BOARD_BTN_STR[i], callbackFuncs[i]));
+				.Add(LEADER_BOARD_BTN_STR[i], new UIButton(LEADER_BOARD_BTN_STR[i], callbackFuncs[i]));
 		}
 
 		leaderBoardContents = GameObject.Find("LeaderBoardContents");
@@ -453,6 +474,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 	private void OptionColor()
 	{
+		GameManager.Instance.coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.CLICK);
 		toggleValue[0]                                    = (toggleValue[0] + 1) % 2;
 		buttons["OptionScreen"]["ColorOption"].img.sprite = toggleImg[toggleValue[0]];
 		EffectSystem.SaturationChange();
@@ -460,12 +482,27 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 	private void OptionButton()
 	{
+		GameManager.Instance.coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.CLICK);
 		toggleValue[1]                                     = (toggleValue[1] + 1) % 2;
 		buttons["OptionScreen"]["ButtonOption"].img.sprite = toggleImg[toggleValue[1]];
 	}
 
-	private void OptionHelp()
+	private static void OptionHelp()
 	{
+		GameManager.Instance.coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.CLICK);
+		OptionHelpToastReset();
+		GameManager.Instance.coroutineManager.OnClickOptionHelp();
+	}
+
+	private void OptionHelpToastHide()
+	{
+		GameManager.Instance.coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.SHIFT);
+		buttons["OptionScreen"]["ToastMsg"].btn.interactable = toastShow = false;
+	}
+
+	public static void OptionHelpToastReset()
+	{
+		toastShow = true;
 	}
 
 #endregion

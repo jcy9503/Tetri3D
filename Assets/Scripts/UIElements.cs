@@ -17,10 +17,3 @@ public class UIButton
 		btn.onClick.AddListener(func);
 	}
 }
-
-public class ToastMsg
-{
-	public GameObject obj;
-	public Image      img;
-	public TMP_Text   txt;
-}

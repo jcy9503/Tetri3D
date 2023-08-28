@@ -18,6 +18,7 @@ public class CoroutineManager : MonoBehaviour
 	private const           float     cameraSpeed       = 0.5f;
 	private const           float     cameraShakeAmount = 0.5f;
 	private const           float     cameraShakeTime   = 0.2f;
+	private const           float     toastMsgTime      = 3f;
 	private                 Coroutine animFunc;
 	private static readonly int       speed = Shader.PropertyToID("_Speed");
 
@@ -157,6 +158,13 @@ public class CoroutineManager : MonoBehaviour
 		StartCoroutine(UIFadeOutIn("OptionScreen", "MainScreen", 3f));
 	}
 
+	public void OnClickOptionHelp()
+	{
+		BurstSFX(AudioSystem.SFX_VALUE.CLICK);
+
+		StartCoroutine(UIOptionControlHelpToastMsg());
+	}
+
 	public void OnClickLeaderBoardHome()
 	{
 		BurstSFX(AudioSystem.SFX_VALUE.CLICK);
@@ -190,8 +198,6 @@ public class CoroutineManager : MonoBehaviour
 		GameManager.Instance.Reset();
 
 		StartLogic();
-
-		StartCoroutine(AudioRepeatGameBGM());
 	}
 
 	public void UpdateScore(UISystem.SCORE_TYPE type, int addScore)
@@ -241,11 +247,12 @@ public class CoroutineManager : MonoBehaviour
 
 		StartCoroutine(LogicBlockDown());
 		StartCoroutine(CameraAngleCalculate());
+		mainBGM = StartCoroutine(AudioRepeatGameBGM());
 	}
 
 	private static IEnumerator LogicBlockDown()
 	{
-		while (!GameManager.isPause)
+		do
 		{
 			RenderSystem.RenderCurrentBlock();
 
@@ -253,7 +260,7 @@ public class CoroutineManager : MonoBehaviour
 
 			GameManager.Instance.MoveBlockDown();
 			EffectSystem.Instance.MoveRotationEffect();
-		}
+		} while (!GameManager.isPause);
 	}
 
 #endregion
@@ -267,10 +274,8 @@ public class CoroutineManager : MonoBehaviour
 		AudioSystem.BGMPitch            = 1f;
 		AudioSystem.audioSourceBGM.Play();
 
-		while (true)
+		while (GameManager.isPause)
 		{
-			if (!GameManager.isPause) break;
-
 			if (!AudioSystem.BGMPlaying)
 				AudioSystem.audioSourceBGM.Play();
 
@@ -298,12 +303,8 @@ public class CoroutineManager : MonoBehaviour
 
 	private static IEnumerator AudioRepeatGameBGM()
 	{
-		while (true)
+		while (!GameManager.isPause)
 		{
-			if (GameManager.isGameOver) break;
-
-			if (GameManager.isPause) yield return null;
-
 			if (!AudioSystem.BGMPlaying)
 				AudioSystem.RandomPlayBGM();
 
@@ -564,6 +565,52 @@ public class CoroutineManager : MonoBehaviour
 		GameManager.isGameOver = true;
 
 		PlayMainMenuBGM();
+	}
+
+	private static IEnumerator UIOptionControlHelpToastMsg()
+	{
+		foreach (KeyValuePair<string,UIButton> button in UISystem.Instance.buttons["OptionScreen"])
+		{
+			button.Value.btn.interactable = false;
+		}
+
+		UISystem.Instance.controlOptionHelpMsg.gameObject.SetActive(true);
+		UISystem.Instance.controlOptionHelpMsg.alpha = 0f;
+
+		for (float alpha = 0f; alpha <= 1f; alpha += 0.05f)
+		{
+			UISystem.Instance.controlOptionHelpMsg.alpha = alpha;
+			
+			yield return null;
+		}
+		
+		UISystem.Instance.buttons["OptionScreen"]["ToastMsg"].btn.interactable = true;
+		UISystem.Instance.controlOptionHelpMsg.alpha = 1f;
+
+		float elapsedTime = 0f;
+
+		while (elapsedTime < toastMsgTime && UISystem.toastShow)
+		{
+			elapsedTime += Time.deltaTime;
+
+			yield return null;
+		}
+
+		for (float alpha = 1f; alpha >= 0f; alpha -= 0.05f)
+		{
+			UISystem.Instance.controlOptionHelpMsg.alpha = alpha;
+
+			yield return null;
+		}
+
+		UISystem.Instance.controlOptionHelpMsg.alpha = 1f;
+		UISystem.Instance.controlOptionHelpMsg.gameObject.SetActive(false);
+		UISystem.OptionHelpToastReset();
+		
+		foreach (KeyValuePair<string,UIButton> button in UISystem.Instance.buttons["OptionScreen"])
+		{
+			button.Value.btn.interactable = true;
+		}
 	}
 
 	private static IEnumerator UIScoreAnimation(UISystem.SCORE_TYPE type, int addScore)

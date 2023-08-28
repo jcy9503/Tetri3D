@@ -248,7 +248,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 #region GameControl
 
-	private void SaveBlock()
+	public void SaveBlock()
 	{
 		canSave = false;
 		coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.SHIFT);
