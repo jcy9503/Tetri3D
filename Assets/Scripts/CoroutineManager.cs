@@ -15,7 +15,7 @@ public class CoroutineManager : MonoBehaviour
 	private const           float     audioBGMInterval  = 3f;
 	private const           float     audioSFXDestroy   = 1f;
 	private                 Coroutine mainBGM;
-	private const           float     cameraLerpAmount  = 0.01f;
+	private const           float     cameraSpeed       = 0.5f;
 	private const           float     cameraShakeAmount = 0.5f;
 	private const           float     cameraShakeTime   = 0.2f;
 	private                 Coroutine animFunc;
@@ -48,6 +48,7 @@ public class CoroutineManager : MonoBehaviour
 
 		BurstSFX(AudioSystem.SFX_VALUE.RESUME);
 		ResumeBGM(audioBGMInterval);
+		StartLogic();
 	}
 
 #endregion
@@ -171,7 +172,7 @@ public class CoroutineManager : MonoBehaviour
 	public void OnClickGameOverHome()
 	{
 		BurstSFX(AudioSystem.SFX_VALUE.CLICK);
-		
+
 		UISystem.Instance.GameOverSave();
 
 		StartCoroutine(UIGameHome("GameOverScreen"));
@@ -180,15 +181,16 @@ public class CoroutineManager : MonoBehaviour
 	public void OnClickGameOverRetry()
 	{
 		BurstSFX(AudioSystem.SFX_VALUE.CLICK);
-		
+
 		UISystem.Instance.GameOverSave();
-		
+
 		StartCoroutine(UIFadeOutIn("GameOverScreen", "PlayScreen", 10f));
-		
+
+		GameManager.isGameOver = false;
 		GameManager.Instance.Reset();
-		
+
 		StartLogic();
-		
+
 		StartCoroutine(AudioRepeatGameBGM());
 	}
 
@@ -243,11 +245,8 @@ public class CoroutineManager : MonoBehaviour
 
 	private static IEnumerator LogicBlockDown()
 	{
-		while (!GameManager.isGameOver)
+		while (!GameManager.isPause)
 		{
-			if (GameManager.isPause)
-				yield return null;
-
 			RenderSystem.RenderCurrentBlock();
 
 			yield return new WaitForSeconds(logicDownInterval);
@@ -379,7 +378,7 @@ public class CoroutineManager : MonoBehaviour
 
 			cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation,
 			                                          Quaternion.LookRotation(new Vector3(0f, -6.35f, 23.7f)),
-			                                          elapsedTime);
+			                                          elapsedTime * cameraSpeed);
 
 			yield return null;
 		} while (Quaternion.Angle(cam.transform.rotation,
@@ -392,8 +391,9 @@ public class CoroutineManager : MonoBehaviour
 
 	private static IEnumerator CameraMainMenu()
 	{
-		float  elapsedTime = 0f;
-		Camera cam         = CameraSystem.mainCamera;
+		float     elapsedTime = 0f;
+		Camera    cam         = CameraSystem.mainCamera;
+		Transform rotator     = CameraSystem.rotatorTr;
 
 		do
 		{
@@ -401,22 +401,23 @@ public class CoroutineManager : MonoBehaviour
 
 			cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation,
 			                                          Quaternion.LookRotation(Vector3.right),
-			                                          elapsedTime);
+			                                          elapsedTime * cameraSpeed);
+			rotator.rotation = Quaternion.Slerp(rotator.rotation,
+			                                    Quaternion.Euler(Vector3.zero),
+			                                    elapsedTime * cameraSpeed);
 
 			yield return null;
 		} while (Quaternion.Angle(cam.transform.rotation,
 		                          Quaternion.LookRotation(Vector3.right)) > 1f);
 
 		cam.transform.rotation = Quaternion.LookRotation(Vector3.right);
+		rotator.rotation       = Quaternion.Euler(Vector3.zero);
 	}
 
 	private static IEnumerator CameraAngleCalculate()
 	{
-		while (!GameManager.isGameOver)
+		while (!GameManager.isPause)
 		{
-			if (GameManager.isPause)
-				yield return null;
-
 			CameraSystem.viewAngle = CameraSystem.rotatorTr.rotation.eulerAngles.y switch
 			{
 				<= 45f or > 315f   => 0,
@@ -494,9 +495,9 @@ public class CoroutineManager : MonoBehaviour
 
 	#region Fade Out
 
-		foreach (KeyValuePair<string, Button> button in UISystem.Instance.buttons[fadeOut])
+		foreach (KeyValuePair<string,UIButton> button in UISystem.Instance.buttons[fadeOut])
 		{
-			button.Value.interactable = false;
+			button.Value.btn.interactable = false;
 		}
 
 		while (alphaSet >= 0f)
@@ -516,9 +517,9 @@ public class CoroutineManager : MonoBehaviour
 		UISystem.Instance.screenObjects[fadeIn].gameObject.SetActive(true);
 		UISystem.Instance.screenObjects[fadeIn].alpha = 0f;
 
-		foreach (KeyValuePair<string, Button> button in UISystem.Instance.buttons[fadeIn])
+		foreach (KeyValuePair<string, UIButton> button in UISystem.Instance.buttons[fadeIn])
 		{
-			button.Value.interactable = false;
+			button.Value.btn.interactable = false;
 		}
 
 		alphaSet = 0f;
@@ -537,16 +538,16 @@ public class CoroutineManager : MonoBehaviour
 
 	#region After
 
-		foreach (KeyValuePair<string, Button> button in UISystem.Instance.buttons[fadeOut])
+		foreach (KeyValuePair<string, UIButton> button in UISystem.Instance.buttons[fadeOut])
 		{
-			button.Value.interactable = true;
+			button.Value.btn.interactable = true;
 		}
 
 		UISystem.Instance.screenObjects[fadeOut].gameObject.SetActive(false);
 
-		foreach (KeyValuePair<string, Button> button in UISystem.Instance.buttons[fadeIn])
+		foreach (KeyValuePair<string, UIButton> button in UISystem.Instance.buttons[fadeIn])
 		{
-			button.Value.interactable = true;
+			button.Value.btn.interactable = true;
 		}
 
 	#endregion
@@ -559,11 +560,10 @@ public class CoroutineManager : MonoBehaviour
 
 		yield return StartCoroutine(CameraMainMenu());
 
-		GameManager.isPause = true;
+		GameManager.isPause    = true;
+		GameManager.isGameOver = true;
 
 		PlayMainMenuBGM();
-
-		GameManager.Instance.Reset();
 	}
 
 	private static IEnumerator UIScoreAnimation(UISystem.SCORE_TYPE type, int addScore)

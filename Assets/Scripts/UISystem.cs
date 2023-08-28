@@ -3,11 +3,12 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEditor;
 using TMPro;
+using UnityEngine.Events;
 
 public sealed class UISystem : MonoSingleton<UISystem>
 {
-	public Dictionary<string, CanvasGroup>                screenObjects;
-	public Dictionary<string, Dictionary<string, Button>> buttons;
+	public Dictionary<string, CanvasGroup>                  screenObjects;
+	public Dictionary<string, Dictionary<string, UIButton>> buttons;
 	private readonly string[] SCREEN_STR =
 	{
 		"MainScreen",
@@ -66,6 +67,19 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		"RotateZ",
 		"RotateZInv",
 	};
+	private readonly string[] BLOCK_IMG_STR =
+	{
+		"block_null",
+		"block_I",
+		"block_L",
+		"block_T",
+		"block_O",
+		"block_J",
+		"block_Z",
+		"block_S",
+	};
+	private Image      blockNextImg;
+	private Image      blockSaveImg;
 	private GameObject pauseScreen;
 
 #endregion
@@ -105,6 +119,8 @@ public sealed class UISystem : MonoSingleton<UISystem>
 	};
 	private static OPTION_PANEL     curPanel = OPTION_PANEL.SOUND;
 	private        List<GameObject> optionButtons;
+	private        Sprite[]         toggleImg;
+	private        List<int>        toggleValue;
 	private        Slider           sliderBGM;
 	private        Slider           sliderSFX;
 
@@ -116,7 +132,6 @@ public sealed class UISystem : MonoSingleton<UISystem>
 	{
 		"LeaderBoardHome",
 	};
-
 	private readonly string[] RANK_SPRITE =
 	{
 		"UI/Textures/Medal_1",
@@ -148,7 +163,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 			screenObjects.Add(SCREEN_STR[i], GameObject.Find(SCREEN_STR[i]).GetComponent<CanvasGroup>());
 		}
 
-		buttons = new Dictionary<string, Dictionary<string, Button>>();
+		buttons = new Dictionary<string, Dictionary<string, UIButton>>();
 
 		scoreTxt = new[]
 		{
@@ -167,39 +182,26 @@ public sealed class UISystem : MonoSingleton<UISystem>
 	{
 		mainQuitPanel = GameObject.Find("QuitPanel");
 
-		Queue<GameObject> mainObjs = new();
+		buttons.Add(SCREEN_STR[0], new Dictionary<string, UIButton>());
+		UnityAction[] callbackFuncs =
+		{
+			GameManager.Instance.coroutineManager.OnClickMainMenuGameStart,
+			GameManager.Instance.coroutineManager.OnClickMainMenuOption,
+			GameManager.Instance.coroutineManager.OnClickMainMenuLeaderBoard,
+			() => mainQuitPanel.gameObject.SetActive(true),
+			GameTerminate,
+			() => mainQuitPanel.gameObject.SetActive(false),
+		};
+
+		if (MAIN_BTN_STR.Length != callbackFuncs.Length)
+		{
+			Debug.LogError("InitMainScreen: Please allocate proper amount of functions to button.");
+		}
 
 		for (int i = 0; i < MAIN_BTN_STR.Length; ++i)
 		{
-			mainObjs.Enqueue(GameObject.Find(MAIN_BTN_STR[i]));
+			buttons[SCREEN_STR[0]].Add(MAIN_BTN_STR[i], new UIButton(MAIN_BTN_STR[i], callbackFuncs[i]));
 		}
-
-		buttons.Add(SCREEN_STR[0], new Dictionary<string, Button>());
-
-		for (int i = 0; i < MAIN_BTN_STR.Length; ++i)
-		{
-			buttons[SCREEN_STR[0]].Add(MAIN_BTN_STR[i], mainObjs.Dequeue().GetComponent<Button>());
-		}
-
-		buttons[SCREEN_STR[0]][MAIN_BTN_STR[0]].onClick
-		                                       .AddListener(GameManager.Instance.coroutineManager
-		                                                               .OnClickMainMenuGameStart);
-		buttons[SCREEN_STR[0]][MAIN_BTN_STR[1]].onClick
-		                                       .AddListener(GameManager.Instance.coroutineManager
-		                                                               .OnClickMainMenuOption);
-		buttons[SCREEN_STR[0]][MAIN_BTN_STR[2]].onClick
-		                                       .AddListener(GameManager.Instance.coroutineManager
-		                                                               .OnClickMainMenuLeaderBoard);
-		buttons[SCREEN_STR[0]][MAIN_BTN_STR[3]].onClick.AddListener(() => mainQuitPanel.gameObject.SetActive(true));
-
-#if UNITY_EDITOR
-		buttons[SCREEN_STR[0]][MAIN_BTN_STR[4]].onClick
-		                                       .AddListener(GameTerminate);
-#else
-		buttons[SCREEN_STR[0]][MAIN_BTN_STR[4]].onClick.AddListener(Application.Quit);
-#endif
-
-		buttons[SCREEN_STR[0]][MAIN_BTN_STR[5]].onClick.AddListener(() => mainQuitPanel.gameObject.SetActive(false));
 
 		mainQuitPanel.SetActive(false);
 		screenObjects[SCREEN_STR[0]].gameObject.SetActive(true);
@@ -214,27 +216,40 @@ public sealed class UISystem : MonoSingleton<UISystem>
 			playObjects.Add(PLAY_OBJ_STR[i], GameObject.Find(PLAY_OBJ_STR[i]));
 		}
 
-		buttons.Add(SCREEN_STR[1], new Dictionary<string, Button>());
+		buttons.Add(SCREEN_STR[1], new Dictionary<string, UIButton>());
+		UnityAction[] callbackFuncs =
+		{
+			GamePause,
+			GameManager.Instance.coroutineManager.OnClickPauseHome,
+			PauseResume,
+			GameManager.Instance.MoveBlockLeft,
+			GameManager.Instance.MoveBlockRight,
+			GameManager.Instance.MoveBlockForward,
+			GameManager.Instance.MoveBlockBackward,
+			GameManager.Instance.RotateBlockX,
+			GameManager.Instance.RotateBlockXInv,
+			GameManager.Instance.RotateBlockY,
+			GameManager.Instance.RotateBlockYInv,
+			GameManager.Instance.RotateBlockZ,
+			GameManager.Instance.RotateBlockZInv,
+		};
+
+		if (PLAY_BTN_STR.Length != callbackFuncs.Length)
+		{
+			Debug.LogError("InitPlayScreen: Please allocate proper amount of functions to button.");
+		}
 
 		for (int i = 0; i < PLAY_BTN_STR.Length; ++i)
 		{
-			buttons[SCREEN_STR[1]].Add(PLAY_BTN_STR[i], GameObject.Find(PLAY_BTN_STR[i]).GetComponent<Button>());
+			buttons[SCREEN_STR[1]].Add(PLAY_BTN_STR[i], new UIButton(PLAY_BTN_STR[i], callbackFuncs[i]));
 		}
 
-		buttons[SCREEN_STR[1]][PLAY_BTN_STR[0]].onClick.AddListener(GamePause);
-		buttons[SCREEN_STR[1]][PLAY_BTN_STR[1]].onClick
-		                                       .AddListener(GameManager.Instance.coroutineManager.OnClickPauseHome);
-		buttons[SCREEN_STR[1]][PLAY_BTN_STR[2]].onClick.AddListener(PauseResume);
-		buttons[SCREEN_STR[1]][PLAY_BTN_STR[3]].onClick.AddListener(GameManager.Instance.MoveBlockLeft);
-		buttons[SCREEN_STR[1]][PLAY_BTN_STR[4]].onClick.AddListener(GameManager.Instance.MoveBlockRight);
-		buttons[SCREEN_STR[1]][PLAY_BTN_STR[5]].onClick.AddListener(GameManager.Instance.MoveBlockForward);
-		buttons[SCREEN_STR[1]][PLAY_BTN_STR[6]].onClick.AddListener(GameManager.Instance.MoveBlockBackward);
-		buttons[SCREEN_STR[1]][PLAY_BTN_STR[7]].onClick.AddListener(GameManager.Instance.RotateBlockX);
-		buttons[SCREEN_STR[1]][PLAY_BTN_STR[8]].onClick.AddListener(GameManager.Instance.RotateBlockXInv);
-		buttons[SCREEN_STR[1]][PLAY_BTN_STR[9]].onClick.AddListener(GameManager.Instance.RotateBlockY);
-		buttons[SCREEN_STR[1]][PLAY_BTN_STR[10]].onClick.AddListener(GameManager.Instance.RotateBlockYInv);
-		buttons[SCREEN_STR[1]][PLAY_BTN_STR[11]].onClick.AddListener(GameManager.Instance.RotateBlockZ);
-		buttons[SCREEN_STR[1]][PLAY_BTN_STR[12]].onClick.AddListener(GameManager.Instance.RotateBlockZInv);
+		blockNextImg = GameObject.Find("BlockNextImg").GetComponent<Image>();
+		blockNextImg.sprite =
+			Resources.Load<Sprite>("UI/Textures/" + BLOCK_IMG_STR[GameManager.BlockQueue.GetNextBlockId()]);
+
+		blockSaveImg        = GameObject.Find("BlockSaveImg").GetComponent<Image>();
+		blockSaveImg.sprite = Resources.Load<Sprite>("UI/Textures/" + BLOCK_IMG_STR[0]);
 
 		scoreTxt[0].text = "0";
 
@@ -251,13 +266,6 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 	private void InitOptionScreen()
 	{
-		buttons.Add(SCREEN_STR[2], new Dictionary<string, Button>());
-
-		for (int i = 0; i < OPTION_BTN_STR.Length; ++i)
-		{
-			buttons[SCREEN_STR[2]].Add(OPTION_BTN_STR[i], GameObject.Find(OPTION_BTN_STR[i]).GetComponent<Button>());
-		}
-
 		optionButtons = new List<GameObject>();
 
 		for (int i = 0; i < OPTION_PANEL_STR.Length; ++i)
@@ -265,14 +273,27 @@ public sealed class UISystem : MonoSingleton<UISystem>
 			optionButtons.Add(GameObject.Find(OPTION_PANEL_STR[i]));
 		}
 
-		buttons[SCREEN_STR[2]][OPTION_BTN_STR[0]].onClick.AddListener(() => OptionPanel(OPTION_PANEL.SOUND));
-		buttons[SCREEN_STR[2]][OPTION_BTN_STR[1]].onClick.AddListener(() => OptionPanel(OPTION_PANEL.GRAPHIC));
-		buttons[SCREEN_STR[2]][OPTION_BTN_STR[2]].onClick.AddListener(() => OptionPanel(OPTION_PANEL.CONTROL));
-		buttons[SCREEN_STR[2]][OPTION_BTN_STR[3]].onClick
-		                                         .AddListener(GameManager.Instance.coroutineManager.OnClickOptionHome);
-		buttons[SCREEN_STR[2]][OPTION_BTN_STR[4]].onClick.AddListener(OptionColor);
-		buttons[SCREEN_STR[2]][OPTION_BTN_STR[5]].onClick.AddListener(OptionButton);
-		buttons[SCREEN_STR[2]][OPTION_BTN_STR[6]].onClick.AddListener(OptionHelp);
+		buttons.Add(SCREEN_STR[2], new Dictionary<string, UIButton>());
+		UnityAction[] callbackFuncs =
+		{
+			() => OptionPanel(OPTION_PANEL.SOUND),
+			() => OptionPanel(OPTION_PANEL.GRAPHIC),
+			() => OptionPanel(OPTION_PANEL.CONTROL),
+			GameManager.Instance.coroutineManager.OnClickOptionHome,
+			OptionColor,
+			OptionButton,
+			OptionHelp,
+		};
+
+		if (OPTION_BTN_STR.Length != callbackFuncs.Length)
+		{
+			Debug.LogError("InitOptionScreen: Please allocate proper amount of functions to button.");
+		}
+
+		for (int i = 0; i < OPTION_BTN_STR.Length; ++i)
+		{
+			buttons[SCREEN_STR[2]].Add(OPTION_BTN_STR[i], new UIButton(OPTION_BTN_STR[i], callbackFuncs[i]));
+		}
 
 		sliderBGM = GameObject.Find("BGMSlider").GetComponent<Slider>();
 		sliderSFX = GameObject.Find("SFXSlider").GetComponent<Slider>();
@@ -286,6 +307,18 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		sliderBGM.onValueChanged.AddListener(delegate { OptionSlider(SLIDER_TYPE.BGM); });
 		sliderSFX.onValueChanged.AddListener(delegate { OptionSlider(SLIDER_TYPE.SFX); });
 
+		toggleImg = new[]
+		{
+			Resources.Load<Sprite>("UI/Textures/toggle_off"),
+			Resources.Load<Sprite>("UI/Textures/toggle_on"),
+		};
+
+		toggleValue = new List<int>
+		{
+			EffectSystem.SaturationValue(), // Color Option
+			0,                              // Control Option
+		};
+
 		optionButtons[0].SetActive(true);
 		optionButtons[1].SetActive(false);
 		optionButtons[2].SetActive(false);
@@ -295,17 +328,22 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 	private void InitLeaderBoardScreen()
 	{
-		buttons.Add(SCREEN_STR[3], new Dictionary<string, Button>());
+		buttons.Add(SCREEN_STR[3], new Dictionary<string, UIButton>());
+		UnityAction[] callbackFuncs =
+		{
+			GameManager.Instance.coroutineManager.OnClickLeaderBoardHome,
+		};
+
+		if (LEADER_BOARD_BTN_STR.Length != callbackFuncs.Length)
+		{
+			Debug.LogError("InitLeaderBoardScreen: Please allocate proper amount of functions to button.");
+		}
 
 		for (int i = 0; i < LEADER_BOARD_BTN_STR.Length; ++i)
 		{
-			buttons[SCREEN_STR[3]].Add(LEADER_BOARD_BTN_STR[i],
-			                           GameObject.Find(LEADER_BOARD_BTN_STR[i]).GetComponent<Button>());
+			buttons[SCREEN_STR[3]]
+			   .Add(LEADER_BOARD_BTN_STR[i], new UIButton(LEADER_BOARD_BTN_STR[i], callbackFuncs[i]));
 		}
-
-		buttons[SCREEN_STR[3]][LEADER_BOARD_BTN_STR[0]].onClick
-		                                               .AddListener(GameManager.Instance.coroutineManager
-			                                                           .OnClickLeaderBoardHome);
 
 		leaderBoardContents = GameObject.Find("LeaderBoardContents");
 
@@ -314,20 +352,17 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 	private void InitGameOverScreen()
 	{
-		buttons.Add(SCREEN_STR[4], new Dictionary<string, Button>());
+		buttons.Add(SCREEN_STR[4], new Dictionary<string, UIButton>());
+		UnityAction[] callbackFuncs =
+		{
+			GameManager.Instance.coroutineManager.OnClickGameOverHome,
+			GameManager.Instance.coroutineManager.OnClickGameOverRetry,
+		};
 
 		for (int i = 0; i < GAME_OVER_BTN_STR.Length; ++i)
 		{
-			buttons[SCREEN_STR[4]].Add(GAME_OVER_BTN_STR[i],
-			                           GameObject.Find(GAME_OVER_BTN_STR[i]).GetComponent<Button>());
+			buttons[SCREEN_STR[4]].Add(GAME_OVER_BTN_STR[i], new UIButton(GAME_OVER_BTN_STR[i], callbackFuncs[i]));
 		}
-
-		buttons[SCREEN_STR[4]][GAME_OVER_BTN_STR[0]].onClick
-		                                            .AddListener(GameManager.Instance.coroutineManager
-		                                                                    .OnClickGameOverHome);
-		buttons[SCREEN_STR[4]][GAME_OVER_BTN_STR[1]].onClick
-		                                            .AddListener(GameManager.Instance.coroutineManager
-		                                                                    .OnClickGameOverRetry);
 
 		scoreTxt[1].text = "0";
 
@@ -353,7 +388,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 #region Play Functions
 
-	private void GamePause()
+	public void GamePause()
 	{
 		playObjects["ControlScreen"].SetActive(false);
 		playObjects["PauseScreen"].SetActive(true);
@@ -361,12 +396,24 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		GameManager.Instance.coroutineManager.GamePause();
 	}
 
-	private void PauseResume()
+	public void PauseResume()
 	{
 		playObjects["PauseScreen"].SetActive(false);
 		playObjects["ControlScreen"].SetActive(true);
 
 		GameManager.Instance.coroutineManager.GameResume();
+	}
+
+	public void UpdateNextBlockImg()
+	{
+		blockNextImg.sprite =
+			Resources.Load<Sprite>("UI/Textures/" + BLOCK_IMG_STR[GameManager.BlockQueue.GetNextBlockId()]);
+	}
+
+	public void UpdateSaveBlockImg()
+	{
+		blockSaveImg.sprite =
+			Resources.Load<Sprite>("UI/Textures/" + BLOCK_IMG_STR[GameManager.BlockQueue.GetSaveBlockId()]);
 	}
 
 #endregion
@@ -406,10 +453,15 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 	private void OptionColor()
 	{
+		toggleValue[0]                                    = (toggleValue[0] + 1) % 2;
+		buttons["OptionScreen"]["ColorOption"].img.sprite = toggleImg[toggleValue[0]];
+		EffectSystem.SaturationChange();
 	}
 
 	private void OptionButton()
 	{
+		toggleValue[1]                                     = (toggleValue[1] + 1) % 2;
+		buttons["OptionScreen"]["ButtonOption"].img.sprite = toggleImg[toggleValue[1]];
 	}
 
 	private void OptionHelp()
@@ -444,7 +496,8 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		else
 		{
 			instance.transform.GetChild(0).GetComponent<Image>().sprite = Resources.Load<Sprite>(RANK_SPRITE[rank]);
-			instance.transform.GetChild(0).GetChild(0).GetComponent<Image>().sprite = Resources.Load<Sprite>(RANK_SPRITE[rank]);
+			instance.transform.GetChild(0).GetChild(0).GetComponent<Image>().sprite =
+				Resources.Load<Sprite>(RANK_SPRITE[rank]);
 		}
 
 		instance.transform.GetChild(1).GetComponent<TMP_Text>().text = user;
@@ -467,6 +520,6 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		SaveData save = new(GameManager.totalScore, scoreInput.text.ToUpper());
 		GameManager.AddData(save);
 	}
-	
+
 #endregion
 }

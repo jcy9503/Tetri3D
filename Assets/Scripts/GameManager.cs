@@ -35,17 +35,17 @@ public sealed class GameManager : MonoSingleton<GameManager>
 	public static  bool             testBlock;
 	public static  int              testHeight;
 	private static int              testFieldSize;
-	public         Block.BLOCK_TYPE testBlockType;
+	public static  Block.BLOCK_TYPE testBlockType;
 
 	// Grid / Blocks
-	public static  GameGrid   grid;
-	private static BlockQueue BlockQueue { get; set; }
-	public static  Block      currentBlock;
-	public static  Block      shadowBlock;
-	public static  Block      saveBlock;
-	public static  bool       canSave;
-	public const   float      blockSize    = 1.0f;
-	private const  float      downInterval = 1.0f;
+	public static GameGrid   grid;
+	public static BlockQueue BlockQueue { get; set; }
+	public static Block      currentBlock;
+	public static Block      shadowBlock;
+	public static Block      saveBlock;
+	public static bool       canSave;
+	public const  float      blockSize    = 1.0f;
+	private const float      downInterval = 1.0f;
 
 	public enum INPUT_CONTROL
 	{
@@ -73,12 +73,14 @@ public sealed class GameManager : MonoSingleton<GameManager>
 	private void Start()
 	{
 		Init();
-		if (!File.Exists(Application.dataPath + "Resources/SaveData.json"))
+
+		if (!File.Exists(Application.dataPath + "/Resources/SaveData.json"))
 		{
 			saveData = new SaveInfo();
 			string saveStr = JsonUtility.ToJson(saveData);
 			File.WriteAllText(Application.dataPath + "/Resources/SaveData.json", saveStr);
 		}
+
 		textAsset = Resources.Load<TextAsset>("SaveData");
 		ReadData();
 
@@ -91,8 +93,8 @@ public sealed class GameManager : MonoSingleton<GameManager>
 #endif
 		coroutineManager = GameObject.Find("CoroutineManager").GetComponent<CoroutineManager>();
 
-		BlockQueue   = new BlockQueue(testBlockType);
-		currentBlock = BlockQueue.GetAndUpdateBlock(testBlockType);
+		BlockQueue   = new BlockQueue();
+		currentBlock = BlockQueue.GetAndUpdateBlock();
 
 		CameraSystem.Instance.Init();
 		RenderSystem.Instance.Init();
@@ -222,7 +224,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 					break;
 
 				case INPUT_CONTROL.PAUSE:
-					coroutineManager.GamePause();
+					UISystem.Instance.GamePause();
 
 					break;
 
@@ -235,7 +237,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 			switch (control)
 			{
 				case INPUT_CONTROL.PAUSE:
-					coroutineManager.GameResume();
+					UISystem.Instance.PauseResume();
 
 					break;
 			}
@@ -250,13 +252,9 @@ public sealed class GameManager : MonoSingleton<GameManager>
 	{
 		canSave = false;
 		coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.SHIFT);
-		currentBlock = BlockQueue.SaveAndUpdateBlock(currentBlock);
+		currentBlock = BlockQueue.SaveAndUpdateBlock();
+		UISystem.Instance.UpdateSaveBlockImg();
 		RenderSystem.RefreshCurrentBlock();
-	}
-
-	public void GameStart()
-	{
-		coroutineManager.GameStart();
 	}
 
 	public void Reset()
@@ -272,7 +270,8 @@ public sealed class GameManager : MonoSingleton<GameManager>
 			grid = new GameGrid(ref gridSize, blockSize);
 		}
 
-		currentBlock = BlockQueue.GetAndUpdateBlock(testBlockType);
+		isPause      = false;
+		currentBlock = BlockQueue.GetAndUpdateBlock();
 		BlockQueue.SaveBlockReset();
 		canSave = true;
 
@@ -332,7 +331,8 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		else
 		{
 			canSave      = true;
-			currentBlock = BlockQueue.GetAndUpdateBlock(testBlockType);
+			currentBlock = BlockQueue.GetAndUpdateBlock();
+			UISystem.Instance.UpdateNextBlockImg();
 			RenderSystem.RefreshCurrentBlock();
 		}
 	}
@@ -922,7 +922,6 @@ public sealed class GameManager : MonoSingleton<GameManager>
 	private void ReadData()
 	{
 		saveData = JsonUtility.FromJson<SaveInfo>(textAsset.text);
-		SortData();
 	}
 
 	public static void AddData(SaveData info)

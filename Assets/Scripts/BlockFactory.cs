@@ -14,7 +14,7 @@ public class BlockFactory
 		CreateBlockS
 	};
 
-	public Block BlockSpawn(int id)
+	public static Block BlockSpawn(int id)
 	{
 		CreateBlocks func = createFactory[id];
 

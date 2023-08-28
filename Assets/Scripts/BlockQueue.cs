@@ -2,29 +2,21 @@ using Random = System.Random;
 
 public class BlockQueue
 {
-	public BlockQueue(Block.BLOCK_TYPE type)
-	{
-		blockCreateFunc = new BlockFactory();
-		nextBlock       = RandomBlock(type);
-		saveBlock       = null;
-	}
+	private const int   blockTypeNum = 7;
+	private       Block nextBlock    = RandomBlock();
+	private       Block saveBlock;
 
-	private static BlockFactory blockCreateFunc;
-	private const  int          blockTypeNum    = 7;
-	private        Block        nextBlock;
-	private        Block        saveBlock;
-
-	private static Block RandomBlock(Block.BLOCK_TYPE type)
+	private static Block RandomBlock()
 	{
 		if (GameManager.testBlock)
 		{
-			Block returnBlock = blockCreateFunc.BlockSpawn((int)type);
+			Block returnBlock = BlockFactory.BlockSpawn((int)GameManager.testBlockType);
 			return returnBlock;
 		}
 
 		Random randValue = new();
 
-		return blockCreateFunc.BlockSpawn(randValue.Next(0, blockTypeNum));
+		return BlockFactory.BlockSpawn(randValue.Next(0, (int)Block.BLOCK_TYPE.COUNT));
 	}
 
 	public void SaveBlockReset()
@@ -32,30 +24,30 @@ public class BlockQueue
 		saveBlock = null;
 	}
 
-	public Block SaveAndUpdateBlock(Block save)
+	public Block SaveAndUpdateBlock()
 	{
 		if (saveBlock == null)
 		{
-			saveBlock = save;
+			saveBlock = GameManager.currentBlock;
 
-			return GetAndUpdateBlock(Block.BLOCK_TYPE.DEFAULT);
+			return GetAndUpdateBlock();
 		}
 
 		saveBlock.Reset();
 
 		Block block = saveBlock;
-		saveBlock = save;
+		saveBlock = GameManager.currentBlock;
 
 		return block;
 	}
 
-	public Block GetAndUpdateBlock(Block.BLOCK_TYPE type)
+	public Block GetAndUpdateBlock()
 	{
 		Block block = nextBlock;
 
 		if (GameManager.testBlock)
 		{
-			nextBlock = RandomBlock(type);
+			nextBlock = RandomBlock();
 			block.Reset();
 
 			return block;
@@ -63,11 +55,21 @@ public class BlockQueue
 
 		do
 		{
-			nextBlock = RandomBlock(Block.BLOCK_TYPE.DEFAULT);
+			nextBlock = RandomBlock();
 		} while (block.GetId() == nextBlock.GetId());
 
 		block.Reset();
 
 		return block;
+	}
+
+	public int GetNextBlockId()
+	{
+		return nextBlock.GetId();
+	}
+
+	public int GetSaveBlockId()
+	{
+		return saveBlock?.GetId() ?? 0;
 	}
 }
