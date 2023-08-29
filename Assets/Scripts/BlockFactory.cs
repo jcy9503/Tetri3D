@@ -2,8 +2,8 @@ using System.Collections.Generic;
 
 public static class BlockFactory
 {
-	private delegate Block CreateBlocks();
-	private static readonly List<CreateBlocks> createFactory = new()
+	private delegate Block CreateBlock();
+	private static readonly List<CreateBlock> createFactory = new()
 	{
 		CreateBlockI,
 		CreateBlockL,
@@ -16,7 +16,7 @@ public static class BlockFactory
 
 	public static Block BlockSpawn(int id)
 	{
-		CreateBlocks func = createFactory[id];
+		CreateBlock func = createFactory[id];
 
 		return func();
 	}
