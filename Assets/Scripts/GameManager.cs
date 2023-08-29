@@ -7,6 +7,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using UnityEngine;
@@ -22,7 +23,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 	public        CoroutineManager coroutineManager;
 
 	// Score
-	private const    int       baseScore  = 100;
+	private const    int       baseScore  = 10;
 	private readonly int[]     scoreValue = { 1, 2, 4, 8 };
 	private static   int       comboIdx;
 	public static    int       totalScore;
@@ -38,14 +39,16 @@ public sealed class GameManager : MonoSingleton<GameManager>
 	public static  Block.BLOCK_TYPE testBlockType;
 
 	// Grid / Blocks
-	public static GameGrid   grid;
-	public static BlockQueue BlockQueue { get; set; }
-	public static Block      currentBlock;
-	public static Block      shadowBlock;
-	public static Block      saveBlock;
-	public static bool       canSave;
-	public const  float      blockSize    = 1.0f;
-	private const float      downInterval = 1.0f;
+	public static  GameGrid   grid;
+	public static  BlockQueue BlockQueue { get; set; }
+	public static  Block      currentBlock;
+	public static  Block      shadowBlock;
+	public static  bool       canSave;
+	public const   float      blockSize             = 1.0f;
+	private const  float      downIntervalOrigin    = 1f;
+	private const  float      downIntervalSpeedBase = 1.05f;
+	private static int        downIntervalSpeedExp;
+	public static  float      downInterval = downIntervalOrigin;
 
 	public enum INPUT_CONTROL
 	{
@@ -122,6 +125,10 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		isGameOver = false;
 		isPause    = true;
 		totalScore = 0;
+		comboIdx   = 0;
+
+		downInterval         = downIntervalOrigin;
+		downIntervalSpeedExp = 0;
 
 		testHeight    = 7;
 		testFieldSize = 10;
@@ -270,10 +277,18 @@ public sealed class GameManager : MonoSingleton<GameManager>
 			grid = new GameGrid(ref gridSize, blockSize);
 		}
 
-		isPause      = false;
+		isPause    = false;
+		isGameOver = false;
+
+		totalScore = 0;
+		comboIdx   = 0;
+
 		currentBlock = BlockQueue.GetAndUpdateBlock();
 		BlockQueue.SaveBlockReset();
 		canSave = true;
+
+		downInterval         = downIntervalOrigin;
+		downIntervalSpeedExp = 0;
 
 		RenderSystem.Instance.Reset();
 	}
@@ -296,7 +311,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		}
 
 		List<int> cleared = grid.ClearFullRows();
-		ScoreCalc(cleared.Count);
+		ScoreCalculation(cleared.Count);
 
 		coroutineManager.GridEffect(cleared);
 
@@ -337,7 +352,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		}
 	}
 
-	private void ScoreCalc(int cleared)
+	private void ScoreCalculation(int cleared)
 	{
 		if (cleared == 0)
 		{
@@ -348,6 +363,13 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 		int addScore = baseScore * (int)Mathf.Pow(scoreValue[cleared - 1], ++comboIdx);
 		totalScore += addScore;
+
+		if (addScore >= baseScore * scoreValue[3])
+		{
+			downInterval = Mathf.Pow(downIntervalSpeedBase, --downIntervalSpeedExp);
+			
+			UISystem.Instance.SpeedUpTransition();
+		}
 
 		coroutineManager.UpdateScore(UISystem.SCORE_TYPE.PLAY, addScore);
 	}

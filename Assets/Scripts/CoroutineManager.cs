@@ -3,17 +3,16 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.UI;
 
 public class CoroutineManager : MonoBehaviour
 {
 #region Variable
 
-	private delegate        void      Callback();
-	private const           float     logicDownInterval = 1f;
-	private const           float     audioTimeUnit     = 0.03f;
-	private const           float     audioBGMInterval  = 3f;
-	private const           float     audioSFXDestroy   = 1f;
+	private delegate void Callback();
+	
+	private const           float     audioTimeUnit        = 0.03f;
+	private const           float     audioBGMInterval     = 3f;
+	private const           float     audioSFXDestroy      = 1f;
 	private                 Coroutine mainBGM;
 	private const           float     cameraSpeed       = 0.5f;
 	private const           float     cameraShakeAmount = 0.5f;
@@ -49,7 +48,7 @@ public class CoroutineManager : MonoBehaviour
 
 		BurstSFX(AudioSystem.SFX_VALUE.RESUME);
 		ResumeBGM(audioBGMInterval);
-		StartLogic();
+		ResumeLogic();
 	}
 
 #endregion
@@ -205,6 +204,11 @@ public class CoroutineManager : MonoBehaviour
 		StartCoroutine(UIScoreAnimation(type, addScore));
 	}
 
+	public void SpeedUpTransition()
+	{
+		StartCoroutine(UIGameSpeedUp());
+	}
+
 #region Effect
 
 	public void GridEffect(List<int> cleared)
@@ -250,17 +254,27 @@ public class CoroutineManager : MonoBehaviour
 		mainBGM = StartCoroutine(AudioRepeatGameBGM());
 	}
 
+	private void ResumeLogic()
+	{
+		GameManager.isPause = false;
+		
+		mainBGM = StartCoroutine(AudioRepeatGameBGM());
+	}
+
 	private static IEnumerator LogicBlockDown()
 	{
 		do
 		{
+			if (GameManager.isPause) yield return null;
+			
+			float interval = GameManager.downInterval;
 			RenderSystem.RenderCurrentBlock();
 
-			yield return new WaitForSeconds(logicDownInterval);
+			yield return new WaitForSeconds(interval);
 
 			GameManager.Instance.MoveBlockDown();
 			EffectSystem.Instance.MoveRotationEffect();
-		} while (!GameManager.isPause);
+		} while (!GameManager.isGameOver);
 	}
 
 #endregion
@@ -417,8 +431,10 @@ public class CoroutineManager : MonoBehaviour
 
 	private static IEnumerator CameraAngleCalculate()
 	{
-		while (!GameManager.isPause)
+		while (!GameManager.isGameOver)
 		{
+			if (GameManager.isPause) yield return null;
+			
 			CameraSystem.viewAngle = CameraSystem.rotatorTr.rotation.eulerAngles.y switch
 			{
 				<= 45f or > 315f   => 0,
@@ -496,7 +512,7 @@ public class CoroutineManager : MonoBehaviour
 
 	#region Fade Out
 
-		foreach (KeyValuePair<string,UIButton> button in UISystem.Instance.buttons[fadeOut])
+		foreach (KeyValuePair<string, UIButton> button in UISystem.Instance.buttons[fadeOut])
 		{
 			button.Value.btn.interactable = false;
 		}
@@ -567,9 +583,52 @@ public class CoroutineManager : MonoBehaviour
 		PlayMainMenuBGM();
 	}
 
+	private static IEnumerator UIGameSpeedUp()
+	{
+		List<float> ui_speed   = new();
+		float       slowest    = 2f;
+		int         slowestIdx = 0;
+
+		for (int i = 0; i < UISystem.Instance.speedUpTxt.Count; ++i)
+		{
+			float rand = Random.Range(-300f, 300f);
+			if (rand < slowest)
+			{
+				slowest    = rand;
+				slowestIdx = i;
+			}
+
+			ui_speed.Add(UISystem.speedUpSpeed + rand);
+		}
+
+		while (UISystem.Instance.speedUpTxt[slowestIdx].anchoredPosition.x < UISystem.speedUpTxtDestX)
+		{
+			for (int i = 0; i < UISystem.Instance.speedUpTxt.Count; ++i)
+			{
+				UISystem.Instance.speedUpTxt[i].anchoredPosition += Vector2.right * (ui_speed[i] * Time.deltaTime);
+			}
+
+			Vector3 rand_color = Vector3.zero;
+			int     start      = Random.Range(0, 3);
+			int     additive   = Random.Range(0, 3);
+			rand_color[start]                  += 0.5f;
+			rand_color[(start + additive) % 3] += 0.5f;
+			Color dest_color = new(rand_color.x, rand_color.y, rand_color.z);
+
+			UISystem.Instance.speedUpMainTxt.color = dest_color;
+
+			yield return null;
+		}
+
+		foreach (RectTransform rect in UISystem.Instance.speedUpTxt)
+		{
+			rect.anchoredPosition = new Vector2(UISystem.speedUpTxtOriginX, rect.anchoredPosition.y);
+		}
+	}
+
 	private static IEnumerator UIOptionControlHelpToastMsg()
 	{
-		foreach (KeyValuePair<string,UIButton> button in UISystem.Instance.buttons["OptionScreen"])
+		foreach (KeyValuePair<string, UIButton> button in UISystem.Instance.buttons["OptionScreen"])
 		{
 			button.Value.btn.interactable = false;
 		}
@@ -580,12 +639,12 @@ public class CoroutineManager : MonoBehaviour
 		for (float alpha = 0f; alpha <= 1f; alpha += 0.05f)
 		{
 			UISystem.Instance.controlOptionHelpMsg.alpha = alpha;
-			
+
 			yield return null;
 		}
-		
+
 		UISystem.Instance.buttons["OptionScreen"]["ToastMsg"].btn.interactable = true;
-		UISystem.Instance.controlOptionHelpMsg.alpha = 1f;
+		UISystem.Instance.controlOptionHelpMsg.alpha                           = 1f;
 
 		float elapsedTime = 0f;
 
@@ -606,8 +665,8 @@ public class CoroutineManager : MonoBehaviour
 		UISystem.Instance.controlOptionHelpMsg.alpha = 1f;
 		UISystem.Instance.controlOptionHelpMsg.gameObject.SetActive(false);
 		UISystem.OptionHelpToastReset();
-		
-		foreach (KeyValuePair<string,UIButton> button in UISystem.Instance.buttons["OptionScreen"])
+
+		foreach (KeyValuePair<string, UIButton> button in UISystem.Instance.buttons["OptionScreen"])
 		{
 			button.Value.btn.interactable = true;
 		}

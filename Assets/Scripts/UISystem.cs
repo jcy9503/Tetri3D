@@ -85,9 +85,21 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		"block_S",
 	};
 
-	private Image      blockNextImg;
-	private Image      blockSaveImg;
-	private GameObject pauseScreen;
+	private readonly string[] SPEED_UP_TXT =
+	{
+		"SpeedUp_01",
+		"SpeedUp_02",
+		"SpeedUp_03",
+	};
+
+	private      Image               blockNextImg;
+	private      Image               blockSaveImg;
+	private      GameObject          pauseScreen;
+	public       List<RectTransform> speedUpTxt;
+	public       TMP_Text            speedUpMainTxt;
+	public const float               speedUpTxtOriginX = -550f;
+	public const float               speedUpTxtDestX   = 550f;
+	public const float               speedUpSpeed      = 1000f;
 
 #endregion
 
@@ -203,9 +215,17 @@ public sealed class UISystem : MonoSingleton<UISystem>
 			GameManager.Instance.coroutineManager.OnClickMainMenuGameStart,
 			GameManager.Instance.coroutineManager.OnClickMainMenuOption,
 			GameManager.Instance.coroutineManager.OnClickMainMenuLeaderBoard,
-			() => mainQuitPanel.gameObject.SetActive(true),
+			() =>
+			{
+				GameManager.Instance.coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.CLICK);
+				mainQuitPanel.gameObject.SetActive(true);
+			},
 			GameTerminate,
-			() => mainQuitPanel.gameObject.SetActive(false),
+			() =>
+			{
+				GameManager.Instance.coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.CLICK);
+				mainQuitPanel.gameObject.SetActive(false);
+			},
 		};
 
 		if (MAIN_BTN_STR.Length != callbackFuncs.Length)
@@ -268,6 +288,15 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		blockSaveImg.sprite = Resources.Load<Sprite>("UI/Textures/" + BLOCK_IMG_STR[0]);
 
 		scoreTxt[0].text = "0";
+
+		speedUpTxt = new List<RectTransform>();
+
+		for (int i = 0; i < SPEED_UP_TXT.Length; ++i)
+		{
+			speedUpTxt.Add(GameObject.Find(SPEED_UP_TXT[i]).GetComponent<RectTransform>());
+		}
+
+		speedUpMainTxt = speedUpTxt[SPEED_UP_TXT.Length - 1].GetComponent<TMP_Text>();
 
 #if UNITY_EDITOR || UNITY_STANDALONE_WIN
 
@@ -396,6 +425,8 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 	private static void GameTerminate()
 	{
+		GameManager.Instance.coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.CLICK);
+		
 		GameManager.StoreData();
 
 #if UNITY_EDITOR
@@ -435,6 +466,11 @@ public sealed class UISystem : MonoSingleton<UISystem>
 	{
 		blockSaveImg.sprite =
 			Resources.Load<Sprite>("UI/Textures/" + BLOCK_IMG_STR[GameManager.BlockQueue.GetSaveBlockId()]);
+	}
+
+	public void SpeedUpTransition()
+	{
+		GameManager.Instance.coroutineManager.SpeedUpTransition();
 	}
 
 #endregion
