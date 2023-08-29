@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-public class BlockFactory
+public static class BlockFactory
 {
 	private delegate Block CreateBlocks();
 	private static readonly List<CreateBlocks> createFactory = new()

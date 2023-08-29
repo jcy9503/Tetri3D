@@ -165,4 +165,13 @@ public class GameGrid
 
 		return cleared;
 	}
+
+	// public int ClearHighestPlane()
+	// {
+	// 	for (int y = 0; y <= SizeY; ++y)
+	// 	{
+	// 		bool flag = false;
+	// 		for(int x = 1; )
+	// 	}
+	// }
 }
