@@ -113,8 +113,8 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 #if UNITY_EDITOR
 		testGrid  = true;
-		gridRegen = false;
-		testBlock = false;
+		gridRegen = true;
+		testBlock = true;
 
 #else
 		testGrid = false;
