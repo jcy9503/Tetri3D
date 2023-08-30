@@ -1,7 +1,4 @@
-using System;
-using System.Collections;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 public sealed class CameraSystem : MonoSingleton<CameraSystem>
 {

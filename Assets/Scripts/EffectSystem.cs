@@ -32,7 +32,6 @@ public sealed class EffectSystem : MonoSingleton<EffectSystem>
 		gridMeshes = RenderSystem.gridMeshList;
 
 		effectObj     = GameObject.Find("Effect");
-		lineGlowPower = lineMeshes[0].Renderer.material.GetFloat(power);
 
 		postProcessVolume = Resources.Load<VolumeProfile>("GlobalVolumeProfile");
 
@@ -44,6 +43,11 @@ public sealed class EffectSystem : MonoSingleton<EffectSystem>
 			Application.Quit();
 #endif
 		}
+	}
+
+	public void Reset()
+	{
+		lineGlowPower = lineMeshes[0].Renderer.material.GetFloat(power);
 	}
 
 	public static void DropEffect()

@@ -2,17 +2,15 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 public class CoroutineManager : MonoBehaviour
 {
 #region Variable
 
-	private delegate void Callback();
-	
-	private const           float     audioTimeUnit        = 0.03f;
-	private const           float     audioBGMInterval     = 3f;
-	private const           float     audioSFXDestroy      = 1f;
+	private delegate        void      Callback();
+	private const           float     audioTimeUnit    = 0.03f;
+	private const           float     audioBGMInterval = 3f;
+	private const           float     audioSFXDestroy  = 1f;
 	private                 Coroutine mainBGM;
 	private const           float     cameraSpeed       = 0.5f;
 	private const           float     cameraShakeAmount = 0.5f;
@@ -30,6 +28,9 @@ public class CoroutineManager : MonoBehaviour
 	public void GameStart()
 	{
 		BurstSFX(AudioSystem.SFX_VALUE.CLICK);
+
+		GameManager.Instance.Reset();
+
 		StartCoroutine(AudioPlayGameBGM());
 		StartCoroutine(CameraGameStart(StartLogic));
 	}
@@ -115,15 +116,6 @@ public class CoroutineManager : MonoBehaviour
 
 #region UI
 
-	public void OnClickPauseHome()
-	{
-		BurstSFX(AudioSystem.SFX_VALUE.CLICK);
-
-		StartCoroutine(UIGameHome("PlayScreen"));
-
-		PlayMainMenuBGM();
-	}
-
 	public void OnClickMainMenuGameStart()
 	{
 		GameManager.isGameOver = false;
@@ -148,6 +140,17 @@ public class CoroutineManager : MonoBehaviour
 
 		StartCoroutine(UIFadeOutIn("MainScreen", "LeaderBoardScreen", 3f));
 		UISystem.Instance.BoardReset();
+	}
+
+	public void OnClickPauseHome()
+	{
+		BurstSFX(AudioSystem.SFX_VALUE.CLICK);
+
+		GameManager.isGameOver = true;
+
+		StartCoroutine(UIGameHome("PlayScreen"));
+
+		PlayMainMenuBGM();
 	}
 
 	public void OnClickOptionHome()
@@ -193,7 +196,6 @@ public class CoroutineManager : MonoBehaviour
 
 		StartCoroutine(UIFadeOutIn("GameOverScreen", "PlayScreen", 10f));
 
-		GameManager.isGameOver = false;
 		GameManager.Instance.Reset();
 
 		StartLogic();
@@ -247,17 +249,17 @@ public class CoroutineManager : MonoBehaviour
 
 	private void StartLogic()
 	{
-		GameManager.isPause = false;
-
 		StartCoroutine(LogicBlockDown());
+		StartCoroutine(LogicPunishment());
 		StartCoroutine(CameraAngleCalculate());
+
 		mainBGM = StartCoroutine(AudioRepeatGameBGM());
 	}
 
 	private void ResumeLogic()
 	{
 		GameManager.isPause = false;
-		
+
 		mainBGM = StartCoroutine(AudioRepeatGameBGM());
 	}
 
@@ -265,8 +267,13 @@ public class CoroutineManager : MonoBehaviour
 	{
 		do
 		{
-			if (GameManager.isPause) yield return null;
-			
+			if (GameManager.isPause)
+			{
+				yield return null;
+
+				continue;
+			}
+
 			float interval = GameManager.downInterval;
 			RenderSystem.RenderCurrentBlock();
 
@@ -274,6 +281,27 @@ public class CoroutineManager : MonoBehaviour
 
 			GameManager.Instance.MoveBlockDown();
 			EffectSystem.Instance.MoveRotationEffect();
+		} while (!GameManager.isGameOver);
+	}
+
+	private IEnumerator LogicPunishment()
+	{
+		do
+		{
+			if (GameManager.isPause)
+			{
+				yield return null;
+
+				continue;
+			}
+
+			float interval = GameManager.punishIntervalOrigin * GameManager.downInterval;
+
+			yield return new WaitForSeconds(interval);
+
+			GameManager.grid.PlanePunish();
+			PlayRandomSFX(AudioSystem.SFX_VALUE.PUNISH1, AudioSystem.SFX_VALUE.PUNISH5);
+			RenderSystem.RenderGrid();
 		} while (!GameManager.isGameOver);
 	}
 
@@ -374,7 +402,7 @@ public class CoroutineManager : MonoBehaviour
 	{
 		yield return StartCoroutine(AudioFadeOutBGM(audioBGMInterval));
 
-		StopCoroutine(mainBGM);
+		if (mainBGM != null) StopCoroutine(mainBGM);
 		mainBGM = StartCoroutine(AudioRepeatGameBGM());
 	}
 
@@ -434,7 +462,7 @@ public class CoroutineManager : MonoBehaviour
 		while (!GameManager.isGameOver)
 		{
 			if (GameManager.isPause) yield return null;
-			
+
 			CameraSystem.viewAngle = CameraSystem.rotatorTr.rotation.eulerAngles.y switch
 			{
 				<= 45f or > 315f   => 0,
@@ -585,37 +613,38 @@ public class CoroutineManager : MonoBehaviour
 
 	private static IEnumerator UIGameSpeedUp()
 	{
-		List<float> ui_speed   = new();
+		List<float> uiSpeed    = new();
 		float       slowest    = 2f;
 		int         slowestIdx = 0;
 
 		for (int i = 0; i < UISystem.Instance.speedUpTxt.Count; ++i)
 		{
 			float rand = Random.Range(-300f, 300f);
+
 			if (rand < slowest)
 			{
 				slowest    = rand;
 				slowestIdx = i;
 			}
 
-			ui_speed.Add(UISystem.speedUpSpeed + rand);
+			uiSpeed.Add(UISystem.speedUpSpeed + rand);
 		}
 
 		while (UISystem.Instance.speedUpTxt[slowestIdx].anchoredPosition.x < UISystem.speedUpTxtDestX)
 		{
 			for (int i = 0; i < UISystem.Instance.speedUpTxt.Count; ++i)
 			{
-				UISystem.Instance.speedUpTxt[i].anchoredPosition += Vector2.right * (ui_speed[i] * Time.deltaTime);
+				UISystem.Instance.speedUpTxt[i].anchoredPosition += Vector2.right * (uiSpeed[i] * Time.deltaTime);
 			}
 
-			Vector3 rand_color = Vector3.zero;
-			int     start      = Random.Range(0, 3);
-			int     additive   = Random.Range(0, 3);
-			rand_color[start]                  += 0.5f;
-			rand_color[(start + additive) % 3] += 0.5f;
-			Color dest_color = new(rand_color.x, rand_color.y, rand_color.z);
+			Vector3 randColor = Vector3.zero;
+			int     start     = Random.Range(0, 3);
+			int     additive  = Random.Range(0, 3);
+			randColor[start]                  += 0.5f;
+			randColor[(start + additive) % 3] += 0.5f;
+			Color destColor = new(randColor.x, randColor.y, randColor.z);
 
-			UISystem.Instance.speedUpMainTxt.color = dest_color;
+			UISystem.Instance.speedUpMainTxt.color = destColor;
 
 			yield return null;
 		}
@@ -855,12 +884,17 @@ public class CoroutineManager : MonoBehaviour
 			{
 				for (int j = 0; j < GameManager.grid.SizeZ; ++j)
 				{
+					string[] matPath =
+					{
+						Block.MAT_PATH[^2],
+						Block.MAT_PATH[^2],
+					};
 					Vector3 offset = new(i, -height, j);
-					PrefabMesh mesh = new("Prefabs/Mesh_Block", RenderSystem.startOffset + offset, Block.MAT_PATH[^1],
-					                      new Coord(i, height, j), ShadowCastingMode.Off);
-					mesh.renderer.material.SetFloat(EffectSystem.clear,    1f);
-					mesh.renderer.material.SetFloat(EffectSystem.color,    Random.Range(0f, 1f));
-					mesh.renderer.material.SetFloat(EffectSystem.emission, 10f);
+					PrefabMesh mesh = new("Prefabs/Mesh_Block", RenderSystem.startOffset + offset, matPath,
+					                      new Coord(i, height, j));
+					mesh.renderer.materials[0].SetFloat(EffectSystem.clear,    1f);
+					mesh.renderer.materials[0].SetFloat(EffectSystem.emission, 10f);
+					mesh.renderer.materials[0].SetFloat(EffectSystem.color,    Random.Range(0f, 1f));
 
 					Rigidbody rb = mesh.Obj.AddComponent<Rigidbody>();
 
@@ -883,22 +917,24 @@ public class CoroutineManager : MonoBehaviour
 			}
 		}
 
-		float alphaSet    = 1.02f;
-		float emissionSet = 2.1f;
+		float       alphaSet    = 1f;
+		float       emissionSet = 2f;
+		const float unit        = 0.005f;
 
 		while (alphaSet > 0)
 		{
-			alphaSet    -= 0.02f;
-			emissionSet =  emissionSet > 0 ? emissionSet - 0.1f : 0f;
+			alphaSet    -= unit;
+			emissionSet =  emissionSet > 0 ? emissionSet - unit * 2.5f : 0f;
 
 			foreach (PrefabMesh mesh in clearMeshList)
 			{
-				mesh.Obj.transform.localScale *= 1.02f;
-				mesh.renderer.material.SetFloat(EffectSystem.alpha,    alphaSet);
-				mesh.renderer.material.SetFloat(EffectSystem.emission, emissionSet);
+				mesh.Obj.transform.localScale *= unit + 1f;
+				mesh.renderer.materials[0].SetFloat(EffectSystem.alpha, alphaSet);
+				mesh.renderer.materials[1].SetFloat(EffectSystem.alpha, alphaSet);
+				mesh.renderer.materials[0].SetFloat(EffectSystem.emission, emissionSet);
 			}
 
-			yield return new WaitForSeconds(0.02f);
+			yield return new WaitForSeconds(unit);
 		}
 
 		foreach (PrefabMesh mesh in clearMeshList)

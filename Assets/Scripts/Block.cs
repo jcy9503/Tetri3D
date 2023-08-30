@@ -66,7 +66,7 @@ public class Block : IBlock
 
 	public IEnumerable<Coord> TilePositions()
 	{
-		return Tile.Select(pos => new Coord(pos + this.pos));
+		return Tile.Select(coord => new Coord(coord + this.pos));
 	}
 
 	public void RotateXClockWise()
@@ -139,7 +139,8 @@ public class Block : IBlock
 		"Materials/BlockJ",
 		"Materials/BlockZ",
 		"Materials/BlockS",
-		"Materials/BlockGrid"
+		"Materials/BlockGrid",
+		"Materials/Edge",
 	};
 	
 	public enum BLOCK_TYPE

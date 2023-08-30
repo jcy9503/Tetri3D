@@ -31,6 +31,11 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 		TETRIS1,
 		TETRIS2,
 		RESUME,
+		PUNISH1,
+		PUNISH2,
+		PUNISH3,
+		PUNISH4,
+		PUNISH5,
 	}
 
 	private readonly string[] BGM_PATH =
@@ -74,6 +79,11 @@ public sealed class AudioSystem : MonoSingleton<AudioSystem>
 		"SFX/Tetris1",
 		"SFX/Tetris2",
 		"SFX/Resume",
+		"SFX/Punish1",
+		"SFX/Punish2",
+		"SFX/Punish3",
+		"SFX/Punish4",
+		"SFX/Punish5",
 	};
 
 	public static  AudioSource     audioSourceBGM;

@@ -7,7 +7,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using UnityEngine;
@@ -39,16 +38,19 @@ public sealed class GameManager : MonoSingleton<GameManager>
 	public static  Block.BLOCK_TYPE testBlockType;
 
 	// Grid / Blocks
-	public static  GameGrid   grid;
-	public static  BlockQueue BlockQueue { get; set; }
-	public static  Block      currentBlock;
-	public static  Block      shadowBlock;
-	public static  bool       canSave;
-	public const   float      blockSize             = 1.0f;
-	private const  float      downIntervalOrigin    = 1f;
-	private const  float      downIntervalSpeedBase = 1.05f;
-	private static int        downIntervalSpeedExp;
-	public static  float      downInterval = downIntervalOrigin;
+	public static GameGrid   grid;
+	public static BlockQueue BlockQueue { get; private set; }
+	public static Block      currentBlock;
+	public static Block      shadowBlock;
+	public static bool       canSave;
+	public const  float      blockSize = 1.0f;
+
+	// Level System
+	private const  float downIntervalOrigin    = 1f;
+	private const  float downIntervalSpeedBase = 1.05f;
+	private static int   downIntervalSpeedExp;
+	public static  float downInterval         = downIntervalOrigin;
+	public const   float punishIntervalOrigin = 120f;
 
 	public enum INPUT_CONTROL
 	{
@@ -87,31 +89,14 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		textAsset = Resources.Load<TextAsset>("SaveData");
 		ReadData();
 
-#if UNITY_EDITOR
-		grid = new GameGrid(ref gridSize, blockSize);
-
-#else
-		grid = new GameGrid(ref gridSize, blockSize);
-
-#endif
 		coroutineManager = GameObject.Find("CoroutineManager").GetComponent<CoroutineManager>();
 
-		BlockQueue   = new BlockQueue();
-		currentBlock = BlockQueue.GetAndUpdateBlock();
+		BlockQueue = new BlockQueue();
 
 		CameraSystem.Instance.Init();
 		RenderSystem.Instance.Init();
 
-		grid.Mesh.Obj.transform.parent = RenderSystem.gridObj.transform;
-
-		RenderSystem.startOffset = new Vector3(-grid.SizeX / 2f + blockSize / 2,
-		                                       grid.SizeY  / 2f - blockSize / 2,
-		                                       -grid.SizeZ / 2f + blockSize / 2);
-		if (testGrid) RenderSystem.RenderGrid();
-
-		RenderSystem.RenderLine();
-		RenderSystem.RenderCurrentBlock();
-		RenderSystem.RenderShadowBlock();
+		if (!testGrid) grid.PlanePunish();
 
 		AudioSystem.Instance.Init();
 		EffectSystem.Instance.Init();
@@ -122,25 +107,14 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 	private void Init()
 	{
-		isGameOver = false;
-		isPause    = true;
-		totalScore = 0;
-		comboIdx   = 0;
-
-		downInterval         = downIntervalOrigin;
-		downIntervalSpeedExp = 0;
-
 		testHeight    = 7;
 		testFieldSize = 10;
 		testBlockType = Block.BLOCK_TYPE.I;
 
 #if UNITY_EDITOR
 		testGrid  = true;
-		gridRegen = true;
-		testBlock = true;
-
-		gridSize[0] = testFieldSize;
-		gridSize[2] = testFieldSize;
+		gridRegen = false;
+		testBlock = false;
 
 #else
 		testGrid = false;
@@ -149,7 +123,11 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 #endif
 
-		canSave = true;
+		if (testGrid)
+		{
+			gridSize[0] = testFieldSize;
+			gridSize[2] = testFieldSize;
+		}
 	}
 
 	private void Update()
@@ -260,8 +238,9 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		canSave = false;
 		coroutineManager.BurstSFX(AudioSystem.SFX_VALUE.SHIFT);
 		currentBlock = BlockQueue.SaveAndUpdateBlock();
-		UISystem.Instance.UpdateSaveBlockImg();
 		RenderSystem.RefreshCurrentBlock();
+		UISystem.Instance.UpdateSaveBlockImg();
+		UISystem.Instance.UpdateNextBlockImg();
 	}
 
 	public void Reset()
@@ -277,9 +256,13 @@ public sealed class GameManager : MonoSingleton<GameManager>
 			grid = new GameGrid(ref gridSize, blockSize);
 		}
 
+		grid.Mesh.Obj.transform.parent = RenderSystem.gridObj.transform;
+		RenderSystem.startOffset = new Vector3(-grid.SizeX / 2f + blockSize / 2,
+		                                       grid.SizeY  / 2f - blockSize / 2,
+		                                       -grid.SizeZ / 2f + blockSize / 2);
+
 		isPause    = false;
 		isGameOver = false;
-
 		totalScore = 0;
 		comboIdx   = 0;
 
@@ -291,6 +274,8 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		downIntervalSpeedExp = 0;
 
 		RenderSystem.Instance.Reset();
+		EffectSystem.Instance.Reset();
+		UISystem.Instance.UpdateNextBlockImg();
 	}
 
 	public static bool BlockFits(Block block)
@@ -367,8 +352,8 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		if (addScore >= baseScore * scoreValue[3])
 		{
 			downInterval = Mathf.Pow(downIntervalSpeedBase, --downIntervalSpeedExp);
-			
-			UISystem.Instance.SpeedUpTransition();
+
+			UISystem.SpeedUpTransition();
 		}
 
 		coroutineManager.UpdateScore(UISystem.SCORE_TYPE.PLAY, addScore);

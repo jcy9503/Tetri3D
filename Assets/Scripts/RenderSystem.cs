@@ -5,7 +5,6 @@
  * Contains rendering related class.
  */
 
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -247,17 +246,24 @@ public class CubeMesh
 /// </summary>
 public class PrefabMesh
 {
-	public          GameObject Obj { get; set; }
-	public readonly Coord      pos;
-	public readonly Renderer   renderer;
+	public          GameObject   Obj { get; set; }
+	public readonly Coord        pos;
+	public readonly MeshRenderer renderer;
 
-	public PrefabMesh(string meshPath, Vector3 pos, string matPath, Coord coord, ShadowCastingMode shadowMode)
+	public PrefabMesh(string meshPath, Vector3 pos, IReadOnlyList<string> matPath, Coord coord)
 	{
-		Obj                        = Object.Instantiate(Resources.Load<GameObject>(meshPath), pos, Quaternion.identity);
-		renderer                   = Obj.GetComponent<Renderer>();
-		renderer.shadowCastingMode = shadowMode;
-		renderer.sharedMaterial    = Resources.Load<Material>(matPath);
-		this.pos                   = coord;
+		Obj      = Object.Instantiate(Resources.Load<GameObject>(meshPath), pos, Quaternion.identity);
+		renderer = Obj.GetComponent<MeshRenderer>();
+
+		Material[] matSet = renderer.materials;
+		for (int i = 0; i < matPath.Count; ++i)
+		{
+			matSet[i] = Resources.Load<Material>(matPath[i]);
+		}
+
+		renderer.materials = matSet;
+
+		this.pos = coord;
 	}
 }
 
@@ -295,7 +301,7 @@ public sealed class RenderSystem : MonoSingleton<RenderSystem>
 		shadowMeshList = new List<PrefabMesh>();
 		gridMeshList   = new List<PrefabMesh>();
 		lineMeshList   = new List<LineMesh>();
-		
+
 		gridObj   = GameObject.Find("Grid");
 		blockObj  = GameObject.Find("Blocks");
 		shadowObj = GameObject.Find("Shadow");
@@ -409,9 +415,14 @@ public sealed class RenderSystem : MonoSingleton<RenderSystem>
 
 		foreach (Coord coord in GameManager.currentBlock.TilePositions())
 		{
+			string[] matPath =
+			{
+				Block.MAT_PATH[GameManager.currentBlock.GetId()],
+				Block.MAT_PATH[GameManager.currentBlock.GetId()],
+			};
+
 			Vector3 offset = new(coord.X, -coord.Y, coord.Z);
-			PrefabMesh mesh = new("Prefabs/Mesh_Block", startOffset + offset,
-			                      Block.MAT_PATH[GameManager.currentBlock.GetId()], coord, ShadowCastingMode.Off);
+			PrefabMesh mesh = new("Prefabs/Mesh_Block", startOffset + offset, matPath, coord);
 
 			blockMeshList.Add(mesh);
 			mesh.Obj.transform.parent = blockObj.transform;
@@ -432,9 +443,13 @@ public sealed class RenderSystem : MonoSingleton<RenderSystem>
 
 		foreach (Coord coord in GameManager.shadowBlock.TilePositions())
 		{
+			string[] matPath =
+			{
+				Block.MAT_PATH[0],
+				Block.MAT_PATH[0],
+			};
 			Vector3 offset = new(coord.X, -coord.Y, coord.Z);
-			PrefabMesh mesh = new("Prefabs/Mesh_Block", startOffset + offset,
-			                      Block.MAT_PATH[0], coord, ShadowCastingMode.Off);
+			PrefabMesh mesh = new("Prefabs/Mesh_Block", startOffset + offset, matPath, coord);
 
 			shadowMeshList.Add(mesh);
 			mesh.Obj.transform.parent = shadowObj.transform;
@@ -451,17 +466,20 @@ public sealed class RenderSystem : MonoSingleton<RenderSystem>
 			{
 				for (int k = 0; k < GameManager.grid.SizeZ; ++k)
 				{
-					if (GameManager.grid[j, i, k] != 0)
-					{
-						Vector3 offset = new(j, -i, k);
-						PrefabMesh mesh = new("Prefabs/Mesh_Block", startOffset + offset, Block.MAT_PATH[^1],
-						                      new Coord(j, i, k), ShadowCastingMode.Off);
-						mesh.renderer.material.SetFloat(gradientColor,
-						                                (float)i / (GameManager.grid.SizeY - 1));
+					if (GameManager.grid[j, i, k] == 0) continue;
 
-						gridMeshList.Add(mesh);
-						mesh.Obj.transform.parent = gridObj.transform;
-					}
+					string[] matPath =
+					{
+						Block.MAT_PATH[^2],
+						Block.MAT_PATH[^1],
+					};
+					Vector3    offset = new(j, -i, k);
+					PrefabMesh mesh   = new("Prefabs/Mesh_Block", startOffset + offset, matPath, new Coord(j, i, k));
+					mesh.renderer.materials[0].SetFloat(gradientColor,
+					                                    (float)i / (GameManager.grid.SizeY - 1));
+
+					gridMeshList.Add(mesh);
+					mesh.Obj.transform.parent = gridObj.transform;
 				}
 			}
 		}

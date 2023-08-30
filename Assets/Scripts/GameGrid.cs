@@ -166,6 +166,28 @@ public class GameGrid
 		return cleared;
 	}
 
+	public void PlanePunish()
+	{
+		for (int i = 0; i <= SizeY; ++i)
+		{
+			for (int j = 1; j <= SizeX; ++j)
+			{
+				for (int k = 1; k <= SizeZ; ++k)
+				{
+					grid[j, i, k] = grid[j, i + 1, k];
+				}
+			}
+		}
+
+		for (int i = 1; i <= SizeX; ++i)
+		{
+			for (int j = 1; j <= SizeZ; ++j)
+			{
+				grid[i, SizeY, j] = Random.Range(0, 2);
+			}
+		}
+	}
+
 	// public int ClearHighestPlane()
 	// {
 	// 	for (int y = 0; y <= SizeY; ++y)

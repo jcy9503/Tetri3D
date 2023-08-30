@@ -442,7 +442,6 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 	public void GamePause()
 	{
-		playObjects["ControlScreen"].SetActive(false);
 		playObjects["PauseScreen"].SetActive(true);
 
 		GameManager.Instance.coroutineManager.GamePause();
@@ -451,7 +450,6 @@ public sealed class UISystem : MonoSingleton<UISystem>
 	public void PauseResume()
 	{
 		playObjects["PauseScreen"].SetActive(false);
-		playObjects["ControlScreen"].SetActive(true);
 
 		GameManager.Instance.coroutineManager.GameResume();
 	}
@@ -468,7 +466,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 			Resources.Load<Sprite>("UI/Textures/" + BLOCK_IMG_STR[GameManager.BlockQueue.GetSaveBlockId()]);
 	}
 
-	public void SpeedUpTransition()
+	public static void SpeedUpTransition()
 	{
 		GameManager.Instance.coroutineManager.SpeedUpTransition();
 	}
