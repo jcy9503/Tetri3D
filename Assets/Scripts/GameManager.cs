@@ -123,6 +123,9 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 #endif
 
+		isGameOver = true;
+		isPause    = true;
+
 		if (testGrid)
 		{
 			gridSize[0] = testFieldSize;

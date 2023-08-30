@@ -279,6 +279,10 @@ public class CoroutineManager : MonoBehaviour
 
 			yield return new WaitForSeconds(interval);
 
+			if (GameManager.isPause) continue;
+
+			if (GameManager.isGameOver) yield break;
+
 			GameManager.Instance.MoveBlockDown();
 			EffectSystem.Instance.MoveRotationEffect();
 		} while (!GameManager.isGameOver);
@@ -298,6 +302,8 @@ public class CoroutineManager : MonoBehaviour
 			float interval = GameManager.punishIntervalOrigin * GameManager.downInterval;
 
 			yield return new WaitForSeconds(interval);
+
+			if (GameManager.isGameOver) yield break;
 
 			GameManager.grid.PlanePunish();
 			PlayRandomSFX(AudioSystem.SFX_VALUE.PUNISH1, AudioSystem.SFX_VALUE.PUNISH5);
@@ -951,8 +957,6 @@ public class CoroutineManager : MonoBehaviour
 	{
 		while (true)
 		{
-			if (GameManager.isGameOver) break;
-
 			int randObj = Random.Range(0, EnvironmentSystem.cubeAnimators.Length);
 			int randInt = Random.Range(0, EnvironmentSystem.totalAnim);
 
