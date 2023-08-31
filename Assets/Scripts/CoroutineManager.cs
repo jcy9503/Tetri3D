@@ -265,11 +265,9 @@ public class CoroutineManager : MonoBehaviour
 		mainBGM = StartCoroutine(AudioRepeatGameBGM());
 	}
 
-	private void ResumeLogic()
+	private static void ResumeLogic()
 	{
 		GameManager.isPause = false;
-
-		mainBGM = StartCoroutine(AudioRepeatGameBGM());
 	}
 
 	private static IEnumerator LogicBlockDown()
@@ -360,13 +358,22 @@ public class CoroutineManager : MonoBehaviour
 
 	private static IEnumerator AudioRepeatGameBGM()
 	{
-		while (!GameManager.isPause)
+		while (!GameManager.isGameOver)
 		{
+			if (GameManager.isPause)
+			{
+				yield return null;
+
+				continue;
+			}
+			
 			if (!AudioSystem.BGMPlaying)
 				AudioSystem.RandomPlayBGM();
 
 			yield return new WaitForSeconds(audioBGMInterval);
 		}
+
+		Debug.Log("Something wrong");
 	}
 
 	private static IEnumerator AudioFadeOutBGM(float acc)

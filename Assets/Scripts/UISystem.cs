@@ -168,6 +168,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 	private const string     LEADER_BOARD_ASSET = "UI/Prefabs/Board";
 	private       GameObject leaderBoardContents;
+	public const  int        leaderBoardCount = 8;
 
 #endregion
 

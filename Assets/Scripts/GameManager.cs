@@ -47,7 +47,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 
 	// Level System
 	private const  float downIntervalOrigin    = 1f;
-	private const  float downIntervalSpeedBase = 1.05f;
+	private const  float downIntervalSpeedBase = 1.1f;
 	private static int   downIntervalSpeedExp;
 	public static  float downInterval         = downIntervalOrigin;
 	public const   float punishIntervalOrigin = 120f;
@@ -117,7 +117,7 @@ public sealed class GameManager : MonoSingleton<GameManager>
 		testBlock = true;
 
 #else
-		testGrid = false;
+		testGrid = true;
 		gridRegen = false;
 		testBlock = false;
 
@@ -932,12 +932,16 @@ public sealed class GameManager : MonoSingleton<GameManager>
 	private void ReadData()
 	{
 		saveData = JsonUtility.FromJson<SaveInfo>(textAsset.text);
+		
+		TrimData();
 	}
 
 	public static void AddData(SaveData info)
 	{
 		saveData.list.Add(info);
+		
 		SortData();
+		TrimData();
 		StoreData();
 	}
 
@@ -950,6 +954,14 @@ public sealed class GameManager : MonoSingleton<GameManager>
 	private static void SortData()
 	{
 		saveData.list.Sort();
+	}
+
+	private static void TrimData()
+	{
+		for (int i = saveData.list.Count - 1; i >= UISystem.leaderBoardCount; --i)
+		{
+			saveData.list.RemoveAt(i);
+		}
 	}
 
 #endregion
