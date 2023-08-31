@@ -53,6 +53,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		"ControlScreen",
 		"BlockMove",
 		"BlockRotate",
+		"TutorialScreen",
 	};
 
 	private readonly string[] PLAY_BTN_STR =
@@ -71,6 +72,8 @@ public sealed class UISystem : MonoSingleton<UISystem>
 		"RotateZ",
 		"RotateZInv",
 		"BlockSave",
+		"Tutorial",
+		"TutorialScreen",
 	};
 
 	private readonly string[] BLOCK_IMG_STR =
@@ -94,7 +97,6 @@ public sealed class UISystem : MonoSingleton<UISystem>
 
 	private      Image               blockNextImg;
 	private      Image               blockSaveImg;
-	private      GameObject          pauseScreen;
 	public       List<RectTransform> speedUpTxt;
 	public       TMP_Text            speedUpMainTxt;
 	public const float               speedUpTxtOriginX = -550f;
@@ -268,6 +270,16 @@ public sealed class UISystem : MonoSingleton<UISystem>
 			GameManager.Instance.RotateBlockZ,
 			GameManager.Instance.RotateBlockZInv,
 			GameManager.Instance.SaveBlock,
+			() =>
+			{
+				GameManager.Instance.coroutineManager.GamePause(AudioSystem.SFX_VALUE.CLICK, false);
+				playObjects["TutorialScreen"].SetActive(true);
+			},
+			() =>
+			{
+				GameManager.Instance.coroutineManager.GameResume(AudioSystem.SFX_VALUE.SHIFT, false);
+				playObjects["TutorialScreen"].SetActive(false);
+			},
 		};
 
 		if (PLAY_BTN_STR.Length != callbackFuncs.Length)
@@ -306,6 +318,7 @@ public sealed class UISystem : MonoSingleton<UISystem>
 #endif
 
 		playObjects["PauseScreen"].SetActive(false);
+		playObjects["TutorialScreen"].SetActive(false);
 		screenObjects[SCREEN_STR[1]].gameObject.SetActive(false);
 	}
 
@@ -444,14 +457,14 @@ public sealed class UISystem : MonoSingleton<UISystem>
 	{
 		playObjects["PauseScreen"].SetActive(true);
 
-		GameManager.Instance.coroutineManager.GamePause();
+		GameManager.Instance.coroutineManager.GamePause(AudioSystem.SFX_VALUE.PAUSE, true);
 	}
 
 	public void PauseResume()
 	{
 		playObjects["PauseScreen"].SetActive(false);
 
-		GameManager.Instance.coroutineManager.GameResume();
+		GameManager.Instance.coroutineManager.GameResume(AudioSystem.SFX_VALUE.RESUME, true);
 	}
 
 	public void UpdateNextBlockImg()

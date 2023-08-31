@@ -35,21 +35,30 @@ public class CoroutineManager : MonoBehaviour
 		StartCoroutine(CameraGameStart(StartLogic));
 	}
 
-	public void GamePause()
+	public void GamePause(AudioSystem.SFX_VALUE sound, bool musicStop)
 	{
 		GameManager.isPause = true;
 
-		BurstSFX(AudioSystem.SFX_VALUE.PAUSE);
-		PauseBGM(audioBGMInterval);
+		BurstSFX(sound);
+
+		if (musicStop)
+		{
+			PauseBGM(audioBGMInterval);
+		}
 	}
 
-	public void GameResume()
+	public void GameResume(AudioSystem.SFX_VALUE sound, bool musicResume)
 	{
 		GameManager.isPause = false;
 
-		BurstSFX(AudioSystem.SFX_VALUE.RESUME);
-		ResumeBGM(audioBGMInterval);
+		BurstSFX(sound);
+
 		ResumeLogic();
+		
+		if (musicResume)
+		{
+			ResumeBGM(audioBGMInterval);
+		}
 	}
 
 #endregion
